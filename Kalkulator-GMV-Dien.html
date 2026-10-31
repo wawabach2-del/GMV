@@ -1,0 +1,1802 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ee4d2d"><meta name="mobile-web-app-capable" content="yes"><title>Kalkulator GMV Dien</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: header dengan jam WIB, tab di bawahnya, lalu satu panel kerja per tab. Angka rata kanan, status berupa pill. */
+:root{
+  --bg:#eef1f0; --surface:#ffffff; --surface2:#f5f7f6; --ink:#15211d; --ink2:#53625c; --line:#d9dfdc;
+  --accent:#3347c9; --accent-ink:#ffffff; --accent-soft:#e6e9fb;
+  --good:#12754f; --good-bg:#e0f3ea; --warn:#8a5a00; --warn-bg:#fcefd0; --bad:#b3261e; --bad-bg:#fbe3e0;
+  --grid:#e1e6e3; --ads:#e8590c; --shop:#ee4d2d; --shop-ink:#ffffff;
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1412; --surface:#161e1b; --surface2:#1c2622; --ink:#e7eeea; --ink2:#9fb0a8; --line:#2b3732;
+    --accent:#8c9bff; --accent-ink:#0e1412; --accent-soft:#232a4d;
+    --good:#58d5a0; --good-bg:#12352a; --warn:#f0c15c; --warn-bg:#3a2e10; --bad:#ff8c82; --bad-bg:#3d1b18;
+    --grid:#26312c; --ads:#ff9a62; --shop:#ff7a5c; --shop-ink:#1a0b07; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#161e1b; --surface2:#1c2622; --ink:#e7eeea; --ink2:#9fb0a8; --line:#2b3732;
+  --accent:#8c9bff; --accent-ink:#0e1412; --accent-soft:#232a4d;
+  --good:#58d5a0; --good-bg:#12352a; --warn:#f0c15c; --warn-bg:#3a2e10; --bad:#ff8c82; --bad-bg:#3d1b18;
+  --grid:#26312c; --ads:#ff9a62; --shop:#ff7a5c; --shop-ink:#1a0b07; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font-body);
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+h1,h2,h3{font-family:var(--font-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:20px} h3{font-size:16px}
+.wrap{max-width:1120px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,tbody td.r,.kpi b,.wf td:last-child{font-variant-numeric:tabular-nums}
+
+/* header + tabs */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-top:14px}
+.head{display:flex;gap:16px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;padding-bottom:12px}
+.head h1{font-size:26px;line-height:1.1}
+.head p{margin:4px 0 0;color:var(--ink2)}
+.clock{text-align:right}
+.clock b{display:block;font:600 24px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.clock span{color:var(--ink2);font-size:12.5px}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;color:var(--ink2);font-weight:600;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button:hover{color:var(--ink)}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;margin-left:6px;text-align:center}
+main{padding-top:18px;display:grid;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.panel>h2,.panel>h3{margin-bottom:10px}
+.muted{color:var(--ink2)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+
+/* controls */
+label{display:grid;gap:4px;font-size:12.5px;color:var(--ink2);font-weight:500;min-width:0}
+input,select,textarea{background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0;width:100%}
+input.num{text-align:right;padding:5px 8px;width:100px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:8px 13px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:4px 9px;font-size:12.5px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.msg{min-height:20px;font-size:13px;margin-top:8px}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.kpi{padding:16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0;min-width:0}
+.kpi span{display:block;color:var(--ink2);font-size:12.5px;font-weight:500}
+.kpi b{display:block;font:700 26px/1.2 var(--font-display);margin-top:2px;overflow-wrap:anywhere}
+.kpi small{color:var(--ink2)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+
+/* alerts */
+.alerts{display:grid;gap:8px}
+.alert{display:flex;gap:10px;align-items:flex-start;border-radius:8px;padding:10px 12px;border:1px solid transparent}
+.alert.bad{background:var(--bad-bg);color:var(--bad)} .alert.warn{background:var(--warn-bg);color:var(--warn)} .alert.good{background:var(--good-bg);color:var(--good)} .alert.info{background:var(--accent-soft);color:var(--ink)}
+.alert strong{white-space:nowrap}
+.alert div{color:var(--ink)}
+.banner{position:sticky;z-index:15;top:0}
+#banner{display:grid;gap:8px;padding-top:12px}
+#banner .alert{border-color:var(--accent);background:var(--accent-soft)}
+
+/* waterfall */
+.wf{width:100%;border-collapse:collapse}
+.wf td{padding:7px 4px;border-bottom:1px solid var(--line)}
+.wf td:nth-child(2){width:38%}
+.wf td:last-child{text-align:right;white-space:nowrap}
+.wf tr.total td{font-weight:700;border-bottom:2px solid var(--ink2)}
+.bar{height:8px;border-radius:4px;background:var(--ink2);opacity:.55;min-width:2px}
+.bar.g{background:var(--good);opacity:1} .bar.r{background:var(--bad);opacity:1}
+
+/* table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:640px}
+table.prod{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
+.prod th{position:sticky;top:0;background:var(--surface2);z-index:2;text-align:right;font-size:12px;color:var(--ink2);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.prod th:first-child,.prod td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--surface);min-width:190px}
+.prod th:first-child{z-index:3;background:var(--surface2)}
+.prod td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.prod td.name b{display:block;font-weight:600;white-space:normal}
+.prod td.name small{color:var(--ink2)}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600}
+.pill.sehat{background:var(--good-bg);color:var(--good)} .pill.tipis{background:var(--warn-bg);color:var(--warn)} .pill.rugi{background:var(--bad-bg);color:var(--bad)} .pill.diam{background:var(--surface2);color:var(--ink2)}
+
+/* charts */
+.chart{width:100%;min-width:0}
+.chart svg{display:block;width:100%;height:auto}
+.ax{fill:var(--ink2);font:12px var(--font-body)}
+.lbl{fill:var(--ink);font:12px var(--font-body)}
+.gridl{stroke:var(--grid);stroke-width:1}
+.zero{stroke:var(--ink2);stroke-width:1.5}
+.minl{stroke:var(--warn);stroke-width:1.5;stroke-dasharray:5 4}
+.b-sehat{fill:var(--good)} .b-tipis{fill:var(--warn)} .b-rugi{fill:var(--bad)}
+.curve{fill:none;stroke:var(--accent);stroke-width:2.5}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--ink2);font-size:12.5px;margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+
+/* calendar */
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{font-size:12px;color:var(--ink2);text-align:center;padding:4px 0;font-weight:600}
+.cal button{aspect-ratio:1/1;min-height:40px;border:1px solid var(--line);background:var(--surface2);border-radius:7px;cursor:pointer;position:relative;font-variant-numeric:tabular-nums}
+.cal button.today{border-color:var(--accent);font-weight:700}
+.cal button.sel{background:var(--accent);color:var(--accent-ink)}
+.cal button.has::after{content:"";position:absolute;bottom:5px;left:50%;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--bad)}
+.cal button.sel.has::after{background:var(--accent-ink)}
+.cal .pad{visibility:hidden}
+.rem{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.rem:last-child{border-bottom:0}
+.rem b{display:block}
+.rem small{color:var(--ink2);display:block}
+.cd{font-weight:600;color:var(--accent)}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+
+/* detail + iklan */
+#detailView{scroll-margin-top:190px}
+.link{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px}
+.link:hover{text-decoration-color:currentColor}
+.prod.sim th:first-child,.prod.sim td:first-child{position:static;min-width:80px;text-align:left}
+.prod.sim tr.cur td{background:var(--accent-soft)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:0}
+.kv dt{font-weight:500;color:var(--ink2)} .kv dd{margin:0;text-align:right;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+table.cmp{border-collapse:collapse;width:100%;min-width:760px}
+.cmp th,.cmp td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+.cmp th{font-size:12px;color:var(--ink2);font-weight:600;white-space:nowrap}
+.cmp td:first-child{font-weight:600;min-width:140px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:4px;padding:1px 7px;background:var(--surface2);color:var(--ink2);border:1px solid var(--line);margin-left:6px;white-space:nowrap}
+.srcs{margin:0;padding-left:18px;columns:2 320px;column-gap:28px} .srcs li{margin-bottom:4px;break-inside:avoid}
+a{color:var(--accent)}
+/* help */
+details{border-bottom:1px solid var(--line);padding:2px 0}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:10px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--ink2);font-weight:400;font-size:18px;line-height:1}
+details[open] summary::after{content:"\2212"}
+details .body{padding:0 0 12px;max-width:72ch;color:var(--ink)}
+details .body p{margin:0 0 8px} details .body ul{margin:0 0 8px;padding-left:20px}
+code{background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:13px}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:6px 16px}
+dt{font-weight:600} dd{margin:0;color:var(--ink2)}
+@media (max-width:560px){dl{grid-template-columns:1fr} .head h1{font-size:22px} .clock{text-align:left}}
+@media (prefers-reduced-motion:no-preference){.tabs button,.btn{transition:background .15s,border-color .15s,color .15s}}
+/* ===== Dasbor Iklan ===== */
+input:disabled,select:disabled{color:var(--ink2);cursor:not-allowed;background:var(--bg)}
+.atag{font-style:normal;font-size:11px;font-weight:600;border-radius:4px;padding:0 6px;margin-left:6px;line-height:17px;display:inline-block;vertical-align:1px}
+.atag.auto{background:var(--good-bg);color:var(--good)} .atag.man{background:var(--warn-bg);color:var(--warn)}
+.switch{display:inline-flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;font-size:13.5px;color:var(--ink)}
+.switch input{appearance:none;-webkit-appearance:none;width:40px;height:23px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;padding:0;border:0;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff}
+.switch input:checked{background:var(--shop)} .switch input:checked::after{left:20px}
+.dash{max-width:760px;margin:0 auto;display:grid;gap:14px}
+.dash-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.subtabs{display:flex;border-bottom:1px solid var(--line)}
+.subtabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:12px 6px;font-weight:600;color:var(--ink);cursor:pointer;font-size:15px}
+.subtabs button[aria-selected="true"]{color:var(--shop);border-bottom-color:var(--shop)}
+.dpanel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.phead h3{font-size:17px;margin:0}
+.period{color:var(--ink2);font-size:13px}
+.sub{font:600 12.5px var(--font-body);margin:16px 0 8px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mcard{background:var(--surface2);border:1.5px solid transparent;border-radius:10px;padding:10px 9px;text-align:left;min-width:0;color:var(--ink);font:inherit}
+button.mcard{cursor:pointer}
+.mcard .ml{display:flex;justify-content:space-between;gap:4px;font-size:12px;line-height:1.25;color:var(--ink2);min-height:30px}
+.mcard .mv{display:block;margin-top:6px;font:700 clamp(15px,4.4vw,21px)/1.15 var(--font-display);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.mcard .ma{display:block;font-size:11px;color:var(--ink2);margin-top:2px}
+.mcard.on.s-ads{border-color:var(--ads);background:var(--surface)} .mcard.on.s-sales{border-color:var(--shop);background:var(--surface)}
+.q{flex:none;width:15px;height:15px;border:1.2px solid var(--ink2);border-radius:50%;font-size:10px;line-height:12px;text-align:center}
+.chartbox{position:relative}
+.tip{position:absolute;top:6px;z-index:3;min-width:160px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.14);pointer-events:none;font-size:13px}
+.tip b{display:block;text-align:center;margin-bottom:6px}
+.tip div{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.tip i,.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.lg{background:none;border:0;display:inline-flex;align-items:center;cursor:pointer;font-size:13px;color:var(--ink);padding:4px 6px;border-radius:6px}
+.lg.off{color:var(--ink2);text-decoration:line-through} .lg.off i{opacity:.35}
+.cta{position:sticky;bottom:0;z-index:12;padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 72%,transparent)}
+.btn-cta{width:100%;background:var(--shop);color:var(--shop-ink);border:0;border-radius:12px;padding:15px;font-weight:700;font-size:16px;cursor:pointer}
+.pitem{display:grid;gap:10px;padding:14px 0;border-top:1px solid var(--line)}
+.prow{display:flex;gap:12px;align-items:flex-start}
+.pthumb{flex:none;width:62px;height:62px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;font:700 22px var(--font-display);color:var(--ink2);position:relative}
+.rk{position:absolute;top:-5px;left:-5px;min-width:28px;padding:3px 5px 9px;font:700 10.5px/1.1 var(--font-body);text-align:center;color:#fff;background:#5d6b65;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.rk.r1,.rk.r2{background:#e3a600;color:#1b1400} .rk.r3{background:#9a5b25}
+.pname{margin:0;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.stat3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;background:var(--surface2);border-radius:8px;padding:9px 6px}
+.stat3 div{text-align:center;min-width:0}.stat3 small{display:block;font-size:11.5px;color:var(--ink2)}.stat3 b{font-size:16px;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--surface2);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.adcard{display:grid;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
+.adcard .top2{display:flex;justify-content:space-between;gap:10px;align-items:center}
+textarea{min-height:90px;font:12.5px/1.4 ui-monospace,monospace}
+.dash .alert,.dpanel .alert{display:block}.dash .alert>strong,.dpanel .alert>strong{display:block;margin-bottom:2px}
+
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="head">
+      <div>
+        <h1>Kalkulator GMV Dien</h1>
+        <p>Hitung GMV, margin, dan batas diskon aman untuk produk Dien.</p>
+      </div>
+      <div class="clock" aria-live="off"><b id="clockTime">--.--.--</b><span id="clockDate">&nbsp;</span></div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="dasbor">Dasbor Iklan</button>
+      <button role="tab" data-tab="ringkasan">Ringkasan</button>
+      <button role="tab" data-tab="produk">Produk</button>
+      <button role="tab" data-tab="grafik">Grafik margin</button>
+      <button role="tab" data-tab="pengingat">Pengingat promo</button>
+      <button role="tab" data-tab="hitung">Kalkulator iklan</button>
+      <button role="tab" data-tab="iklan">Iklan &amp; komisi</button>
+      <button role="tab" data-tab="bantuan">Bantuan anti-boncos <span class="badge" id="riskBadge" hidden>0</span></button>
+    </div>
+    <div id="banner" aria-live="polite"></div>
+  </div>
+
+  <main>
+    <!-- DASBOR IKLAN -->
+    <section id="tab-dasbor" role="tabpanel" hidden>
+      <div class="dash">
+        <div class="dash-head">
+          <div><h2 style="font-size:22px">Dasbor Iklan</h2><p class="muted" style="margin:2px 0 0">Salin angka dari halaman Iklan di Seller Center. Target ROAS dan margin dihitung otomatis.</p></div>
+          <label class="switch"><input type="checkbox" id="manualSw"><span>Mode manual</span></label>
+        </div>
+        <div class="alert info" id="sampleDash"><strong>Angka dari screenshot Anda.</strong><div>Data iklan 1 minggu terakhir dan daftar produk di bawah saya isi dari screenshot yang Anda kirim. Ganti dengan data terbaru lewat formulir "Isi atau ubah data".</div></div>
+        <div class="subtabs" id="dsub" role="tablist">
+          <button type="button" role="tab" data-sub="ringkasan">Ringkasan</button>
+          <button type="button" role="tab" data-sub="daftar">Daftar Iklan</button>
+          <button type="button" role="tab" data-sub="produk">Produk</button>
+        </div>
+
+        <div id="dv-ringkasan" style="display:grid;gap:14px">
+          <div class="dpanel">
+            <div class="phead"><h3>Performa</h3><span class="period" id="periodTxt"></span></div>
+            <div class="mgrid" id="mgrid"></div>
+            <details style="margin-top:12px"><summary>Arti tiap angka</summary><div class="body">
+              <dl>
+                <dt>Biaya Iklan</dt><dd>Total uang yang terpakai untuk iklan.</dd>
+                <dt>Penjualan</dt><dd>Nilai pesanan yang dikaitkan dengan iklan.</dd>
+                <dt>Efektivitas Iklan</dt><dd>Penjualan dibagi Biaya Iklan (ROAS). Dihitung otomatis.</dd>
+                <dt>Persentase Klik</dt><dd>Jumlah Klik dibagi Dilihat. Dihitung otomatis.</dd>
+                <dt>Lainnya</dt><dd>Produk Terjual, Konversi, Pesanan, Dilihat, Klik, dan Voucher disalin apa adanya dari Seller Center.</dd>
+              </dl></div></details>
+          </div>
+          <div class="dpanel" id="chartPanel">
+            <div class="phead"><h3>Biaya iklan dan penjualan</h3>
+              <div><button type="button" class="lg" data-ser="ads"><i style="background:var(--ads)"></i>Biaya Iklan</button><button type="button" class="lg" data-ser="sales"><i style="background:var(--shop)"></i>Penjualan</button></div></div>
+            <div class="chartbox"><div class="chart" id="dchart"></div><div class="tip" id="dtip" hidden></div></div>
+            <p class="muted" id="chartNote" style="margin:8px 0 0"></p>
+            <details style="margin-top:8px"><summary>Catatan harian (untuk grafik garis)</summary><div class="body" style="max-width:none">
+              <div class="form-grid">
+                <label>Tanggal<input id="d_date" type="date"></label>
+                <label>Biaya iklan (Rp)<input id="d_ads" type="number" inputmode="numeric" min="0" step="1000"></label>
+                <label>Penjualan (Rp)<input id="d_sales" type="number" inputmode="numeric" min="0" step="1000"></label>
+                <label>Pesanan<input id="d_ord" type="number" inputmode="numeric" min="0" step="1"></label>
+                <button class="btn primary" type="button" id="d_add">Tambah catatan</button>
+              </div>
+              <div class="msg" id="d_msg" role="alert"></div>
+              <div class="tablewrap" style="max-height:260px"><table class="prod sim" style="min-width:440px"><thead><tr><th>Tanggal</th><th>Biaya iklan</th><th>Penjualan</th><th>Pesanan</th><th></th></tr></thead><tbody id="dlBody"></tbody></table></div>
+              <div class="row" style="margin-top:10px"><button class="btn" type="button" id="d_sum">Pakai total catatan sebagai data Ringkasan</button></div>
+            </div></details>
+          </div>
+          <div class="dpanel">
+            <div class="phead"><h3>Hasil otomatis</h3><span id="vPill"></span></div>
+            <div class="kpis" id="vKpis"></div>
+            <div class="alerts" id="vAlerts" style="margin-top:12px"></div>
+            <div class="sub">Target agar tidak boncos</div>
+            <dl class="kv" id="vTargets"></dl>
+            <div class="form-grid" style="margin-top:14px">
+              <label>Ada penjualan lewat affiliate?<select id="v_aff"><option value="tidak">Tidak</option><option value="ya">Ya</option></select></label>
+              <label id="v_commWrap">Komisi affiliate (%) * wajib diisi<input id="v_comm" type="number" inputmode="decimal" min="0" max="100" step="0.5"></label>
+              <label>Voucher toko dikurangkan dari laba?<select id="v_vcost"><option value="tidak">Tidak</option><option value="ya">Ya</option></select></label>
+            </div>
+            <div class="msg err" id="vErr" role="alert" style="white-space:pre-line"></div>
+            <div class="form-grid" id="vManual" hidden>
+              <label>Margin sebelum iklan (%)<em class="atag man">manual</em><input id="vm_m0" type="number" inputmode="decimal" step="0.5"></label>
+              <label>Target margin bersih (%)<em class="atag man">manual</em><input id="vm_m" type="number" inputmode="decimal" step="0.5"></label>
+              <label>Efektivitas Iklan / ROAS<em class="atag man">manual</em><input id="vm_roas" type="number" inputmode="decimal" step="0.01"></label>
+              <label>Persentase klik (%)<em class="atag man">manual</em><input id="vm_ctr" type="number" inputmode="decimal" step="0.01"></label>
+            </div>
+            <p class="muted" id="vSrc" style="margin:8px 0 0"></p>
+          </div>
+          <div class="dpanel">
+            <details><summary>Isi atau ubah data dari Seller Center</summary><div class="body" style="max-width:none">
+              <div class="form-grid" id="shForm">
+                <label style="grid-column:1/-1">Periode<input data-sh="period" type="text"></label>
+                <label>Biaya Iklan (Rp)<input data-sh="biaya" type="number" inputmode="numeric" min="0"></label>
+                <label>Penjualan (Rp)<input data-sh="penjualan" type="number" inputmode="numeric" min="0"></label>
+                <label>Produk Terjual<input data-sh="terjual" type="number" inputmode="numeric" min="0"></label>
+                <label>Konversi<input data-sh="konversi" type="number" inputmode="numeric" min="0"></label>
+                <label>Pesanan<input data-sh="pesanan" type="number" inputmode="numeric" min="0"></label>
+                <label>Dilihat<input data-sh="dilihat" type="number" inputmode="numeric" min="0"></label>
+                <label>Jumlah Klik<input data-sh="klik" type="number" inputmode="numeric" min="0"></label>
+                <label>Jumlah Voucher (Rp)<input data-sh="voucher" type="number" inputmode="numeric" min="0"></label>
+                <label>Penjualan dari Voucher (Rp)<input data-sh="vsales" type="number" inputmode="numeric" min="0"></label>
+              </div>
+              <p class="muted" style="margin:8px 0 0">Efektivitas Iklan dan Persentase Klik tidak perlu diisi, keduanya dihitung otomatis. Angka sedikit berbeda dari Seller Center bila Anda memakai angka pembulatan seperti 1,9JT.</p>
+            </div></details>
+          </div>
+        </div>
+
+        <div id="dv-daftar" hidden>
+          <div class="dpanel">
+            <div class="phead"><h3>Daftar Iklan</h3><span class="muted" id="adCount"></span></div>
+            <div id="adList"></div>
+            <p class="muted" style="margin:10px 0 0">Kampanye diisi lewat tombol Buat Iklan Produk atau form "Hitung iklan manual" di tab Iklan &amp; komisi.</p>
+          </div>
+        </div>
+
+        <div id="dv-produk" hidden>
+          <div class="dpanel">
+            <div class="phead"><h3>Produk: Performa Terbaik</h3></div>
+            <label>Periode data produk<input id="pf_period" type="text"></label>
+            <div class="subtabs" id="psort" style="margin-top:10px">
+              <button type="button" data-sort="sales">Penjualan ↓</button><button type="button" data-sort="ctr">Persentase Klik</button><button type="button" data-sort="conv">Tingkat Konversi</button>
+            </div>
+            <div id="pList"></div>
+            <div class="sub">Tambah produk</div>
+            <div class="form-grid">
+              <label style="grid-column:1/-1">Nama produk di Shopee<input id="pf_name" type="text" autocomplete="off"></label>
+              <label style="grid-column:1/-1">Hubungkan ke produk Dien (untuk margin otomatis)<select id="pf_link"></select></label>
+              <label>Penjualan (Rp)<input id="pf_sales" type="number" inputmode="numeric" min="0"></label>
+              <label>Persentase klik (%)<input id="pf_ctr" type="number" inputmode="decimal" min="0" step="0.01"></label>
+              <label>Tingkat konversi (%)<input id="pf_conv" type="number" inputmode="decimal" min="0" step="0.01"></label>
+              <button class="btn primary" type="button" id="pf_add">Tambah</button>
+            </div>
+            <div class="msg" id="pf_msg" role="alert"></div>
+            <p class="muted" style="margin:6px 0 0">Konversi sangat tinggi dari klik yang sedikit (misalnya 50%) belum bisa dipercaya. Periode data produk bisa berbeda dari periode data iklan.</p>
+          </div>
+        </div>
+
+        <div class="cta"><button type="button" class="btn-cta" id="ctaBuat">Buat Iklan Produk</button></div>
+      </div>
+    </section>
+
+    <!-- RINGKASAN -->
+    <section id="tab-ringkasan" role="tabpanel" hidden>
+      <div class="alert info" id="sampleNote" style="margin-bottom:18px"><strong>Contoh angka.</strong><div>Jumlah terjual masih 10 per produk sebagai contoh. Isi jumlah terjual sebenarnya di tab Produk, atau <button class="btn small" data-act="clearqty" type="button">kosongkan semua</button>.</div></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel">
+          <h2>Dari GMV ke laba bersih</h2>
+          <table class="wf" id="wf"></table>
+        </div>
+        <div style="display:grid;gap:18px;align-content:start">
+          <div class="panel">
+            <h2>Asumsi hitungan</h2>
+            <div class="form-grid" id="settings">
+              <label>Potongan modal dari harga jual (%)<input id="s_costCut" type="number" inputmode="decimal" step="0.5" min="0" max="95"></label>
+              <label>Fee platform (% dari penjualan)<input id="s_fee" type="number" inputmode="decimal" step="0.5" min="0" max="50"></label>
+              <label>Biaya lain per pesanan (Rp)<input id="s_other" type="number" inputmode="numeric" step="500" min="0"></label>
+              <label>Diskon promo semua produk (%)<input id="s_disc" type="number" inputmode="decimal" step="1" min="0" max="90"></label>
+              <label>Retur dan batal (% dari GMV)<input id="s_ret" type="number" inputmode="decimal" step="0.5" min="0" max="50"></label>
+              <label>Biaya iklan per bulan (Rp)<input id="s_ads" type="number" inputmode="numeric" step="50000" min="0"></label>
+              <label>Margin minimum yang diinginkan (%)<input id="s_minM" type="number" inputmode="decimal" step="1" min="0" max="60"></label>
+            </div>
+            <p class="muted" style="margin:10px 0 0">Modal = harga pricelist dikurangi potongan modal (40% dari Anda). Fee 8%, biaya lain, dan retur adalah perkiraan awal. Cek tarif asli di Seller Center.</p>
+          </div>
+          <div class="panel">
+            <h2>Peringatan</h2>
+            <div class="alerts" id="riskSummary"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUK -->
+    <section id="tab-produk" role="tabpanel" hidden>
+      <div id="detailView" hidden style="display:grid;gap:18px"></div>
+      <div id="listView" style="display:grid;gap:18px">
+      <div class="panel">
+        <h2>Tambah produk manual</h2>
+        <form id="addForm" novalidate>
+          <div class="form-grid">
+            <label>Nama produk<input id="f_name" type="text" placeholder="contoh: Parfum Oud 30ml" autocomplete="off"></label>
+            <label>Kategori<input id="f_cat" type="text" list="catList" placeholder="Perfume / Hair Care / ..." autocomplete="off"><datalist id="catList"></datalist></label>
+            <label>Harga jual (Rp)<input id="f_price" type="number" inputmode="numeric" min="0" step="500" placeholder="65000"></label>
+            <label>Modal per unit (Rp), boleh kosong<input id="f_cost" type="number" inputmode="numeric" min="0" step="500" placeholder="kosong = harga dikurangi potongan modal"></label>
+            <label>Terjual per bulan<input id="f_qty" type="number" inputmode="numeric" min="0" step="1" value="10"></label>
+            <button class="btn primary" type="submit">Tambah produk</button>
+          </div>
+          <div class="msg" id="formMsg" role="alert"></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:12px">
+          <h2 style="margin:0">Daftar produk</h2>
+          <div class="row">
+            <label>Cari<input id="q" type="search" placeholder="nama produk"></label>
+            <label>Kategori<select id="fCat"></select></label>
+            <button class="btn" type="button" data-act="clearqty">Kosongkan jumlah</button>
+            <button class="btn danger" type="button" data-act="resetdien" id="resetBtn">Kembalikan data Dien</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table class="prod" id="prodTable">
+            <thead><tr>
+              <th>Produk</th><th>Harga jual (Rp)</th><th>Modal (Rp)</th><th>Terjual / bln</th>
+              <th>Laba / unit</th><th>Margin</th><th>ROAS impas</th><th>Diskon maks aman</th><th style="text-align:center">Status</th><th></th>
+            </tr></thead>
+            <tbody id="prodBody"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin:10px 0 0">Laba per unit sudah dikurangi fee, retur, dan biaya lain, belum dikurangi iklan. Diskon maks aman adalah diskon terbesar yang masih menyisakan margin minimum. Klik nama produk untuk melihat rincian GMV produk itu saja.</p>
+      </div>
+      </div>
+    </section>
+
+    <!-- GRAFIK -->
+    <section id="tab-grafik" role="tabpanel" hidden style="display:grid;gap:18px">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <h2 style="margin:0">Margin per produk</h2>
+          <div class="row">
+            <label>Kategori<select id="chCat"></select></label>
+            <label>Urutan<select id="chSort"><option value="asc">Terendah dulu</option><option value="desc">Tertinggi dulu</option></select></label>
+            <label>Tampilkan<select id="chN"><option value="10">10 produk</option><option value="20" selected>20 produk</option><option value="all">Semua</option></select></label>
+          </div>
+        </div>
+        <div class="chart" id="chart1"></div>
+        <div class="legend"><span><i style="background:var(--good)"></i>Sehat (di atas margin minimum)</span><span><i style="background:var(--warn)"></i>Tipis</span><span><i style="background:var(--bad)"></i>Rugi</span><span>Garis putus-putus: margin minimum</span></div>
+      </div>
+      <div class="panel">
+        <h2>Margin gabungan saat diskon dinaikkan</h2>
+        <p class="muted" style="margin:0 0 8px">Dihitung dari semua produk sesuai jumlah terjual, sebelum iklan. Kurva yang turun menembus nol berarti diskon itu sudah membuat rugi.</p>
+        <div class="chart" id="chart2"></div>
+      </div>
+    </section>
+
+    <!-- PENGINGAT -->
+    <section id="tab-pengingat" role="tabpanel" hidden>
+      <div class="grid2">
+        <div style="display:grid;gap:18px;align-content:start">
+          <div class="panel">
+            <div class="cal-head">
+              <button class="btn small" type="button" id="calPrev" aria-label="Bulan sebelumnya">&lsaquo;</button>
+              <h2 id="calTitle" style="margin:0;font-size:18px"></h2>
+              <button class="btn small" type="button" id="calNext" aria-label="Bulan berikutnya">&rsaquo;</button>
+            </div>
+            <div class="cal" id="cal"></div>
+            <p class="muted" style="margin:10px 0 0">Titik merah menandai tanggal yang punya pengingat. Klik tanggal untuk mengisinya di formulir.</p>
+          </div>
+          <div class="panel">
+            <h2>Tambah pengingat promo</h2>
+            <div class="presets" style="margin-bottom:12px">
+              <button class="btn small" type="button" data-preset="1111">11.11</button>
+              <button class="btn small" type="button" data-preset="1212">12.12</button>
+              <button class="btn small" type="button" data-preset="gajian">Gajian tiap tanggal 25</button>
+            </div>
+            <form id="remForm" novalidate>
+              <div class="form-grid">
+                <label style="grid-column:1/-1">Judul<input id="r_title" type="text" placeholder="contoh: Siapkan voucher 11.11"></label>
+                <label>Tanggal<input id="r_date" type="date"></label>
+                <label>Jam (WIB)<input id="r_time" type="time" value="08:00"></label>
+                <label>Ingatkan lebih awal<select id="r_lead"><option value="0">Tepat waktu</option><option value="15">15 menit</option><option value="60">1 jam</option><option value="1440" selected>1 hari</option><option value="4320">3 hari</option></select></label>
+                <label>Ulangi<select id="r_rep"><option value="none">Sekali saja</option><option value="monthly">Tiap bulan</option></select></label>
+                <label style="grid-column:1/-1">Catatan<input id="r_note" type="text" placeholder="contoh: cek stok dan budget iklan"></label>
+                <button class="btn primary" type="submit">Simpan pengingat</button>
+              </div>
+              <div class="msg" id="remMsg" role="alert"></div>
+            </form>
+            <p class="muted" style="margin:6px 0 0">Tanggal kampanye 11.11 dan 12.12 hanya perkiraan. Cek jadwal resmi di Seller Center.</p>
+          </div>
+        </div>
+        <div class="panel" style="align-self:start">
+          <h2>Pengingat berikutnya</h2>
+          <div id="remList"></div>
+          <div class="alert warn" style="margin-top:12px"><strong>Perhatian.</strong><div>Pengingat berbunyi dan muncul sebagai banner hanya saat halaman ini terbuka. Untuk promo penting, pasang juga alarm di HP.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KALKULATOR IKLAN -->
+    <section id="tab-hitung" role="tabpanel" hidden style="display:grid;gap:18px">
+      <div class="alert info"><strong>Terisi otomatis.</strong><div>Harga, modal, fee, retur, margin target, dan ROAS target dihitung dari produk yang dipilih dan asumsi di tab Ringkasan. Yang perlu Anda isi: produk, budget iklan, dan komisi affiliate bila dipakai. Aktifkan <b>Mode manual</b> untuk mengubah angka lain sendiri.</div></div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0">Buat iklan produk</h2><label class="switch"><input type="checkbox" id="manualSw2"><span>Mode manual</span></label></div>
+        <div class="form-grid" id="c_form">
+          <label style="grid-column:1/-1">Produk (belum ada? tambahkan di tab Produk)<select id="c_load"></select></label>
+          <label>Jenis iklan<select id="c_type"><option>Iklan Produk</option><option>Iklan Toko</option><option>GMV Max</option><option>Iklan Live</option><option>Lainnya</option></select></label>
+          <label>Pakai affiliate?<select id="c_aff"><option value="tidak">Tidak</option><option value="ya">Ya</option></select></label>
+          <label id="c_commWrap">Komisi affiliate (%) * wajib diisi<input id="c_comm" type="number" inputmode="decimal" min="0" max="100" step="0.5" aria-describedby="c_err"></label>
+          <label>Budget iklan (Rp) *<input id="c_ads" type="number" inputmode="numeric" min="0" step="50000"></label>
+          <label>Harga jual sebelum diskon (Rp)<em class="atag"></em><input id="c_price" type="number" inputmode="numeric" min="0" step="500"></label>
+          <label>Diskon (%)<em class="atag"></em><input id="c_disc" type="number" inputmode="decimal" min="0" max="100" step="1"></label>
+          <label>Modal per unit (Rp)<em class="atag"></em><input id="c_cost" type="number" inputmode="numeric" min="0" step="500"></label>
+          <label>Fee platform (%)<em class="atag"></em><input id="c_fee" type="number" inputmode="decimal" min="0" max="100" step="0.5"></label>
+          <label>Biaya lain per pesanan (Rp)<em class="atag"></em><input id="c_other" type="number" inputmode="numeric" min="0" step="500"></label>
+          <label>Retur dan batal (%)<em class="atag"></em><input id="c_ret" type="number" inputmode="decimal" min="0" max="100" step="0.5"></label>
+          <label>Margin bersih yang diinginkan (%)<em class="atag"></em><input id="c_minM" type="number" inputmode="decimal" min="0" max="100" step="1"></label>
+          <label>Pesanan yang tetap terjadi tanpa iklan (%)<em class="atag"></em><input id="c_org" type="number" inputmode="decimal" min="0" max="100" step="5"></label>
+          <label>ROAS iklan<em class="atag"></em><input id="c_roas" type="number" inputmode="decimal" min="0" step="0.1"></label>
+        </div>
+        <div class="msg err" id="c_err" role="alert" style="white-space:pre-line"></div>
+        <div class="row"><button class="btn primary" type="button" id="c_save">Simpan ke Daftar Iklan</button></div>
+        <div class="msg" id="c_saveMsg" role="status"></div>
+        <p class="muted" style="margin:6px 0 0">Mode otomatis memakai ROAS target aman sebagai ROAS iklan. Komisi affiliate dihitung dari harga setelah diskon. Pajak diabaikan.</p>
+      </div>
+      <div id="c_res" style="display:grid;gap:18px"></div>
+    </section>
+
+    <!-- IKLAN & KOMISI -->
+    <section id="tab-iklan" role="tabpanel" hidden style="display:grid;gap:18px">
+      <div class="alert warn"><strong>Baca dulu.</strong><div>Info ini dirangkum dari artikel berita, halaman bantuan platform, dan blog seller (terbit 2025 sampai September 2026). Tarif dan aturan marketplace sering berubah, kadang sepihak. Cek Seller Center sebelum memutuskan. Teks bertanda <span class="tag">analisis umum</span> adalah catatan saya, bukan data resmi platform.</div></div>
+
+      <div class="panel">
+        <h2>Hitung iklan manual</h2>
+        <p class="muted" style="margin:0 0 12px">Isi angka dari dashboard iklan Anda. Angka awal di bawah hanya contoh, ganti dengan data kampanye Anda.</p>
+        <div class="grid2" style="align-items:start">
+          <form id="mForm" novalidate>
+            <div class="form-grid">
+              <label style="grid-column:1/-1">Nama kampanye (opsional)<input id="m_name" type="text" placeholder="contoh: Tuberose 30ml, Oktober" autocomplete="off"></label>
+              <label>Marketplace<select id="m_mp"><option>Shopee</option><option>TikTok Shop / Tokopedia</option><option>Lazada</option><option>Blibli</option><option>Lainnya</option></select></label>
+              <label>Jenis iklan<select id="m_type"><option>Iklan Produk</option><option>Iklan Toko</option><option>GMV Max</option><option>Iklan Live</option><option>Banner / Display</option><option>Lainnya</option></select></label>
+              <label style="grid-column:1/-1">Produk (pilih untuk mengisi otomatis, atau isi manual di bawah)<select id="m_pick"></select></label>
+              <label>Harga jual per unit (Rp)<input id="m_price" type="number" inputmode="numeric" min="0" step="500" value="125000"></label>
+              <label>Modal per unit (Rp)<input id="m_cost" type="number" inputmode="numeric" min="0" step="500" value="75000"></label>
+              <label>Biaya iklan (Rp)<input id="m_ads" type="number" inputmode="numeric" min="0" step="10000" value="500000"></label>
+              <label>Penjualan dari iklan / GMV iklan (Rp)<input id="m_gmv" type="number" inputmode="numeric" min="0" step="10000" value="4000000"></label>
+              <label>Jumlah pesanan dari iklan<input id="m_orders" type="number" inputmode="numeric" min="0" step="1" value="32" placeholder="kosong = GMV dibagi harga"></label>
+              <label>Pesanan yang tetap terjadi tanpa iklan (%)<input id="m_org" type="number" inputmode="decimal" min="0" max="100" step="5" value="0"></label>
+              <label>Target ROAS di pengaturan iklan (opsional)<input id="m_target" type="number" inputmode="decimal" min="0" step="0.1" placeholder="contoh: 6"></label>
+              <label>Pakai affiliate?<select id="m_aff"><option value="tidak">Tidak</option><option value="ya">Ya</option></select></label>
+              <div id="m_affBox" class="form-grid" style="grid-column:1/-1" hidden>
+                <label>Komisi affiliate (%) <b style="color:var(--bad)">wajib diisi</b><input id="m_comm" type="number" inputmode="decimal" min="0" max="90" step="0.5" placeholder="contoh: 10" aria-required="true"></label>
+                <label>Pesanan lewat affiliate (%)<input id="m_share" type="number" inputmode="decimal" min="0" max="100" step="5" value="100"></label>
+              </div>
+            </div>
+            <div class="row" style="margin-top:14px">
+              <button class="btn primary" type="button" id="m_save">Simpan kampanye</button>
+              <button class="btn" type="button" id="m_reset">Kosongkan form</button>
+            </div>
+            <div class="msg" id="m_msg" role="alert"></div>
+            <p class="muted" style="margin:6px 0 0">Fee platform, retur, biaya lain, dan margin minimum memakai asumsi di tab Ringkasan (sekarang fee <b id="m_fee"></b>%, retur <b id="m_ret"></b>%, biaya lain <b id="m_oth"></b>, margin minimum <b id="m_min"></b>%).</p>
+          </form>
+          <div style="min-width:0">
+            <div id="m_out"></div>
+          </div>
+        </div>
+        <h3 style="margin:20px 0 8px">Kampanye tersimpan</h3>
+        <div id="m_list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Jenis iklan per marketplace</h2>
+        <details open><summary>Shopee</summary><div class="body" style="max-width:none"><div class="tablewrap" style="max-height:none"><table class="cmp">
+          <thead><tr><th>Jenis iklan</th><th>Cara kerja</th><th>Kelebihan</th><th>Kekurangan</th></tr></thead><tbody>
+          <tr><td>Iklan Produk (Pencarian Produk dan Discovery)</td><td>Pencarian Produk muncul saat pembeli mencari kata kunci. Discovery muncul di halaman rekomendasi tanpa pembeli mencari. Bayar per klik; satu sumber menyebut biaya minimum sekitar Rp700 per klik (cek tarif terbaru).</td><td>Cocok untuk seller baru dan produk andalan. Bayar hanya saat diklik. Hasil mudah diukur per produk.</td><td><span class="tag">analisis umum</span> Klik belum tentu jadi beli. Kata kunci populer bisa mahal. Perlu dipantau rutin.</td></tr>
+          <tr><td>Iklan Toko (Pencarian Toko)</td><td>Menampilkan nama toko, voucher, dan produk andalan di atas hasil pencarian, lalu mengarahkan pembeli ke etalase.</td><td>Pembeli menjelajah banyak produk sekaligus. Cocok untuk toko dengan banyak varian seperti Dien.</td><td>Tidak selalu tersedia. Biasanya hanya untuk seller yang sudah menyelesaikan sejumlah pesanan dan punya penilaian pembeli.</td></tr>
+          <tr><td>GMV Max (iklan produk otomatis)</td><td>Berbasis tayangan (impresi) dengan target ROAS. Tampil di pencarian, rekomendasi, dan "Kamu Mungkin Juga Suka". Mulai 7 Mei 2026, pesanan dihitung sebagai hasil iklan jika pembeli klik lalu checkout dalam 7 hari, atau hanya melihat iklan lalu checkout lewat jalur lain dalam 1 hari.</td><td>Otomatis, hemat waktu mengatur. Bisa untung kalau target ROAS realistis dan margin dihitung benar.</td><td>Target ROAS terlalu tinggi membatasi jangkauan, dan hasil tidak dijamin. ROAS awal naik-turun (fase belajar). Iklan produk yang tumpang tindih meningkatkan risiko rugi. Atribusi "tampilan 1 hari" bisa memasukkan pesanan yang sebenarnya tetap terjadi tanpa iklan. Seller mengeluhkan aturan baru terasa sepihak.</td></tr>
+          <tr><td>Iklan Banner</td><td>Banner besar berisi nama toko dan produk unggulan di halaman utama.</td><td>Paparan sangat tinggi. Cocok untuk kampanye musiman seperti flash sale.</td><td><span class="tag">analisis umum</span> Biasanya butuh budget lebih besar dan lebih sulit dikaitkan ke pesanan tertentu.</td></tr>
+          <tr><td>Iklan Live</td><td>Mempromosikan sesi siaran langsung di halaman utama atau hasil pencarian, dengan budget terpisah.</td><td>Sesuai tren belanja lewat live.</td><td>Butuh budget tersendiri di luar iklan produk.</td></tr>
+        </tbody></table></div></div></details>
+
+        <details><summary>TikTok Shop dan Tokopedia</summary><div class="body" style="max-width:none"><p>Tokopedia kini berjalan bersama TikTok Shop, jadi iklannya satu ekosistem (GMV Max).</p><div class="tablewrap" style="max-height:none"><table class="cmp">
+          <thead><tr><th>Jenis iklan</th><th>Cara kerja</th><th>Kelebihan</th><th>Kekurangan</th></tr></thead><tbody>
+          <tr><td>Product GMV Max</td><td>Otomatisasi iklan untuk produk pilihan Anda. Sistem membuat iklan dari materi Anda, mengatur kampanye, dan tayang di feed TikTok, pencarian, tab TikTok Shop, dan jaringan iklan TikTok (format video dan kartu produk).</td><td>Otomatis. Video kreator affiliate yang sudah memberi izin bisa ikut dipakai. Terbuka untuk semua seller dan semua produk.</td><td>Kontrol per iklan berkurang karena sistem membuat dan menghentikan iklan sendiri. Pesanan organik dan affiliate dari produk yang diiklankan ikut dihitung ke kampanye, jadi ROAS bisa tampak lebih besar dari tambahan pesanan yang sebenarnya. Atribusi hari yang sama, 1 hari.</td></tr>
+          <tr><td>Iklan toko / format lain</td><td>Saya tidak menemukan sumber yang bisa saya pastikan untuk iklan tingkat toko atau iklan Live di TikTok Shop.</td><td>-</td><td>Cek menu Iklan di Seller Center untuk format yang tersedia di akun Anda.</td></tr>
+        </tbody></table></div></div></details>
+
+        <details><summary>Lazada</summary><div class="body" style="max-width:none"><div class="tablewrap" style="max-height:none"><table class="cmp">
+          <thead><tr><th>Jenis iklan</th><th>Cara kerja</th><th>Kelebihan</th><th>Kekurangan</th></tr></thead><tbody>
+          <tr><td>Sponsored Max</td><td>Iklan otomatis berbasis AI dengan target performa dan ROAS.</td><td>Cocok bagi seller yang ingin optimasi otomatis.</td><td><span class="tag">analisis umum</span> Mirip GMV Max: kontrol manual lebih sedikit dan perlu target ROAS realistis.</td></tr>
+          <tr><td>Promosi Produk (Sponsored Discovery / Search)</td><td>Menampilkan produk lewat pencarian dan rekomendasi kepada pembeli yang berniat membeli.</td><td>Menambah traffic dan peluang konversi untuk produk tertentu.</td><td><span class="tag">analisis umum</span> Sama seperti iklan produk lain: klik tidak selalu jadi beli.</td></tr>
+          <tr><td>Promosi Display</td><td>Penempatan premium di halaman toko, detail produk, atau halaman kampanye.</td><td>Memperkuat branding.</td><td><span class="tag">analisis umum</span> Hasilnya lebih sulit diukur sebagai penjualan langsung.</td></tr>
+          <tr><td>Sponsored Brand Search (setara iklan toko)</td><td>Posisi premium di hasil pencarian saat pembeli mencari kata kunci brand.</td><td>Menangkap pembeli yang sudah mencari brand Anda.</td><td><span class="tag">analisis umum</span> Hanya efektif kalau brand sudah dicari orang.</td></tr>
+          <tr><td>Di luar Lazada: Promosi Afiliasi, Direct Matching, Promosi Media (Meta), Collaborative Ads Meta dan Google</td><td>Seller memilih mitra afiliasi, produk, dan besaran komisi (Direct Matching), atau mengarahkan pembeli dari Facebook, Instagram, dan Google ke toko Lazada.</td><td>Menjangkau pembeli di luar Lazada. Komisi ditentukan seller.</td><td>Sumbernya blog promosi pihak ketiga yang tidak menyebut kekurangan. Cek rinciannya di Lazada.</td></tr>
+        </tbody></table></div></div></details>
+
+        <details><summary>Blibli dan Bukalapak</summary><div class="body"><p><b>Blibli:</b> punya fitur iklan Bliklan di Seller Center, dan sejak 2023 terintegrasi dengan iklan Meta (Facebook dan Instagram). Rincian jenis dan tarif Bliklan tidak bisa saya pastikan dari sumber yang saya temukan, jadi cek langsung di Seller Center Blibli.</p><p><b>Bukalapak:</b> menghentikan penjualan produk fisik di marketplace pada Januari 2025, jadi bukan pilihan lagi untuk produk Dien.</p></div></details>
+
+        <h3 style="margin:18px 0 8px">Iklan produk atau iklan toko?</h3>
+        <div class="tablewrap" style="max-height:none"><table class="cmp" style="min-width:640px">
+          <thead><tr><th></th><th>Iklan produk</th><th>Iklan toko</th></tr></thead><tbody>
+          <tr><td>Tujuan</td><td>Menjual produk tertentu</td><td>Membawa pembeli ke etalase atau brand</td></tr>
+          <tr><td>Cocok untuk</td><td>Produk andalan dengan margin sehat; seller baru</td><td>Toko dengan banyak varian dan voucher</td></tr>
+          <tr><td>Cara mengukur</td><td>ROAS per produk</td><td>Lebih sulit: lihat total pesanan toko</td></tr>
+          <tr><td>Risiko boncos</td><td>Mengiklankan produk bermargin tipis</td><td>Pembeli masuk lalu membeli produk murah yang laba per unitnya kecil</td></tr>
+        </tbody></table></div>
+        <p class="muted" style="margin:8px 0 0"><span class="tag">analisis umum</span> Dari data Anda, produk dengan laba per unit terbesar saat ini (kandidat iklan produk):</p>
+        <div id="adTop" class="alerts" style="margin-top:8px"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Potongan platform yang perlu dihitung</h2>
+        <div class="tablewrap" style="max-height:none"><table class="cmp">
+          <thead><tr><th>Platform</th><th>Komponen</th><th>Besaran</th><th>Catatan</th></tr></thead><tbody>
+          <tr><td>TikTok Shop dan Tokopedia</td><td>Komisi platform, kategori kecantikan dan perawatan pribadi</td><td>7% dari (harga dikurangi diskon seller), maksimal Rp60.000 per item</td><td>Berlaku 16 September 2026. Sebelumnya batas naik jadi Rp650.000 sejak 18 Mei 2026. Tidak dikembalikan jika retur setelah barang terkirim.</td></tr>
+          <tr><td></td><td>Biaya lain</td><td>Proses pesanan Rp1.250 per transaksi. Logistik maksimal Rp5.060 per pesanan (1 Mei 2026). Gagal kirim atau retur Rp5.000 per arah (1 Juni 2026). Growth Xtra 2 sampai 4% (opsional).</td><td>Komisi 7% disebut sudah termasuk paket promo dasar seperti gratis ongkir dan cashback.</td></tr>
+          <tr><td>Shopee</td><td>Biaya admin</td><td>2,5 sampai 11,7% tergantung kategori, ditambah Rp1.250 per transaksi</td><td>Tarif kategori kecantikan tidak saya temukan. Cek di Seller Center.</td></tr>
+          <tr><td></td><td>Gratis Ongkir XTRA (opsional)</td><td>8% maksimal Rp40.000 per produk (ukuran biasa), 9,5% maksimal Rp60.000 (ukuran khusus). Sebelumnya 6%.</td><td>Berlaku 2 Mei 2026. Satu artikel menyebut ada diskon biaya ini bagi seller yang aktif beriklan (ambang sekitar 3% dari penjualan 30 hari), tetapi ambangnya tidak jelas.</td></tr>
+          <tr><td></td><td>Program opsional lain</td><td>Shopee Live XTRA 3% (maks Rp20.000). SPayLater XTRA 2,5 sampai 4%. Pre-order 3%. Asuransi kirim 0,5%.</td><td>Hanya jika Anda ikut programnya.</td></tr>
+          <tr><td>Lazada</td><td>Komisi dasar</td><td>Sekitar 4,25 sampai 8%, ditambah program promo sekitar 1,5 sampai 6%</td><td>Dari blog pihak ketiga (2026), kurang pasti. Cek Seller Center Lazada.</td></tr>
+          <tr><td>Blibli</td><td>-</td><td>Tidak ada data yang bisa saya pastikan</td><td>Cek Seller Center Blibli.</td></tr>
+        </tbody></table></div>
+        <p class="muted" style="margin:10px 0 0">Kolom "Fee platform" di tab Ringkasan sekarang 8% sebagai perkiraan awal. Kalau Anda ikut Gratis Ongkir XTRA atau program opsional lain, jumlahkan semua potongan, lalu ubah angkanya di sana.</p>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h2>Affiliate: komisi dan potongannya</h2>
+          <div class="tablewrap" style="max-height:none"><table class="cmp" style="min-width:520px">
+            <thead><tr><th>Platform</th><th>Cara kerja dari sisi seller</th></tr></thead><tbody>
+            <tr><td>TikTok Shop</td><td>Seller menentukan persentase komisi kreator (sumber 2025 menyebut umumnya 1 sampai 10%; satu blog menyebut patokan skincare 12 sampai 18%, kisaran 8 sampai 25%, bukan angka resmi). Dihitung dari (jumlah bayar pembeli dikurangi pajak) dikali persentase, dan dipotong dari pencairan dana Anda.</td></tr>
+            <tr><td>Shopee</td><td>Komisi dipasang lewat label Komisi Xtra. Sumber 2025 menyebut biaya layanan 0,5% dari total komisi, maksimal Rp20.000 (aturan 15 April 2025). Cek apakah masih berlaku.</td></tr>
+            <tr><td>Tokopedia (skema lama)</td><td>Komisi dasar per kategori (kecantikan hingga 10%) ditambah komisi ekstra dari toko hingga 20%, dengan batas Rp20.000 per produk. Info Juni 2025, belum tentu berlaku setelah penggabungan dengan TikTok Shop.</td></tr>
+            <tr><td>Lazada</td><td>Lewat Direct Matching, seller memilih mitra, produk, dan besaran komisi.</td></tr>
+          </tbody></table></div>
+          <p class="muted" style="margin:10px 0 0">Rumus aman: <code>Komisi maks = margin sebelum affiliate - margin minimum</code>. Jangan beri komisi lebih besar dari itu.</p>
+        </div>
+        <div class="panel">
+          <h2>Hitung komisi affiliate</h2>
+          <div class="form-grid" style="margin-bottom:12px">
+            <label style="grid-column:1/-1">Produk<select id="a_prod"></select></label>
+            <label>Komisi affiliate (%)<input id="a_comm" type="number" inputmode="decimal" min="0" max="90" step="0.5" value="10"></label>
+          </div>
+          <dl class="kv" id="a_out"></dl>
+          <p class="muted" style="margin:10px 0 0">Komisi dihitung dari harga setelah diskon. Pajak diabaikan.</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h2>Pembeli organik</h2>
+          <p style="margin:0 0 8px">Pembeli organik datang tanpa iklan: dari pencarian, rekomendasi, video atau live, toko favorit, dan pembeli yang kembali.</p>
+          <p style="margin:0 0 6px"><b>Yang memengaruhi di Shopee</b> (Shopee tidak membuka bobot tiap faktor):</p>
+          <ul style="margin:0 0 8px;padding-left:20px">
+            <li>Kata kunci di judul, kategori, dan atribut produk yang diisi lengkap.</li>
+            <li>Performa toko: pembatalan, retur, telat kirim, respons chat.</li>
+            <li>Harga dibanding pesaing, termasuk ongkir dan diskon yang terlihat.</li>
+            <li>Conversion rate, rating, dan jumlah ulasan. Ulasan palsu dihukum.</li>
+            <li>Kecepatan memproses pesanan.</li>
+          </ul>
+          <p style="margin:0 0 8px">Iklan tidak bisa membeli posisi organik. Iklan hanya mempercepat tayangan, pesanan, dan ulasan, itu pun jika produknya sudah laku saat dilihat. Toko baru lebih mudah muncul di tab relevansi daripada tab terlaris.</p>
+          <p style="margin:0"><b>Kaitannya dengan boncos:</b> GMV Max Shopee menghitung pembeli yang hanya melihat iklan lalu membeli dalam 1 hari, dan GMV Max TikTok menghitung pesanan organik dan affiliate dari produk yang diiklankan. Jadi ROAS di dashboard bisa lebih tinggi dari ROAS tambahan yang sebenarnya. Untuk menguji, bandingkan total pesanan toko saat iklan menyala dan saat dijeda beberapa hari.</p>
+        </div>
+        <div class="panel">
+          <h2>Cek ROAS iklan yang sebenarnya</h2>
+          <div class="form-grid" style="margin-bottom:12px">
+            <label>ROAS di dashboard iklan<input id="a_roas" type="number" inputmode="decimal" min="0" step="0.1" value="8"></label>
+            <label>Perkiraan pesanan yang tetap terjadi tanpa iklan (%)<input id="a_org" type="number" inputmode="decimal" min="0" max="100" step="5" value="30"></label>
+          </div>
+          <dl class="kv" id="a_roasOut"></dl>
+          <p class="muted" style="margin:10px 0 0">Angka 30% hanya contoh. Isi dengan perkiraan Anda dari uji jeda iklan.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Sumber</h2>
+        <ul class="srcs">
+          <li><a href="https://teknologi.bisnis.com/read/20260521/266/1975364/biaya-wajib-seller-tiktok-shop-vs-shopee-siapa-paling-banyak" target="_blank" rel="noopener">Bisnis.com: Biaya wajib seller TikTok Shop vs Shopee (21 Mei 2026)</a></li>
+          <li><a href="https://katadata.co.id/digital/e-commerce/6aab834bb86d3/biaya-admin-tiktok-shop-tokopedia-turun-jadi-maksimal-rp60-ribu-ini-hitungannya" target="_blank" rel="noopener">Katadata: Biaya admin TikTok Shop Tokopedia turun, maksimal Rp60 ribu</a></li>
+          <li><a href="https://teknologi.bisnis.com/read/20260507/266/1972008/aturan-baru-gmv-max-shopee-berlaku-hari-ini-seller-terbantu-atau-terbebani" target="_blank" rel="noopener">Bisnis.com: Aturan baru GMV Max Shopee (7 Mei 2026)</a></li>
+          <li><a href="https://teknologi.bisnis.com/read/20260411/84/1965892/seller-shopee-bakal-dibebani-biaya-opsional-gratis-ongkir-ekstra-per-2-mei-2026" target="_blank" rel="noopener">Bisnis.com: Biaya opsional Gratis Ongkir Ekstra Shopee (2 Mei 2026)</a></li>
+          <li><a href="https://olakses.com/berapa-jenis-iklan-shopee-untuk-dongkrak-penjualan-ini-penjelasannya/" target="_blank" rel="noopener">Olakses: Jenis iklan Shopee</a></li>
+          <li><a href="https://www.bigseller.com/blog/articleDetails/3749/gmv-max-roas.htm" target="_blank" rel="noopener">BigSeller: Fakta penggunaan GMV Max ROAS</a></li>
+          <li><a href="https://ads.tiktok.com/resources/help/article/about-product-gmv-max?lang=en" target="_blank" rel="noopener">TikTok Ads Help: About Product GMV Max</a></li>
+          <li><a href="https://www.bigseller.com/blog/articleDetails/3700/lazada-sponsored-solutions.htm" target="_blank" rel="noopener">BigSeller: Lazada Sponsored Solutions</a></li>
+          <li><a href="https://jangkar.io/blog/biaya-komisi-marketplace-indonesia-2026/" target="_blank" rel="noopener">Jangkar: Biaya komisi marketplace Indonesia 2026</a></li>
+          <li><a href="https://tuwaga.id/artikel/komisi-affiliate-shopee-tiktok-tokopedia-2025/" target="_blank" rel="noopener">Tuwaga: Komisi affiliate Shopee, TikTok, Tokopedia (Juni 2025)</a></li>
+          <li><a href="https://www.rekapcepat.id/blog/berapa-komisi-affiliate-ideal-seller-tiktok-shop" target="_blank" rel="noopener">RekapCepat: Komisi affiliate ideal untuk seller TikTok Shop</a></li>
+          <li><a href="https://www.relevantaudience.com/ecommerce-marketing/how-shopee-algorithm-works-product-not-ranking/" target="_blank" rel="noopener">Relevant Audience: Cara algoritma Shopee meranking produk</a></li>
+          <li><a href="https://gizmologi.id/news/iklan-meta-di-bliklan/" target="_blank" rel="noopener">Gizmologi: Bliklan dan iklan Meta di Blibli</a></li>
+          <li><a href="https://market.bisnis.com/read/20250108/7/1829811/bukalapak-setop-penjualan-produk-fisik-e-commerce-saham-buka-dibuka-ambrol-pagi-ini" target="_blank" rel="noopener">Bisnis.com: Bukalapak setop penjualan produk fisik (Januari 2025)</a></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- BANTUAN -->
+    <section id="tab-bantuan" role="tabpanel" hidden style="display:grid;gap:18px">
+      <div class="panel">
+        <h2>Cek risiko otomatis</h2>
+        <p class="muted" style="margin:0 0 10px">Dibaca dari angka dan asumsi yang sedang Anda pakai.</p>
+        <div class="alerts" id="riskFull"></div>
+      </div>
+      <div class="panel">
+        <h2>Cara menghindari boncos</h2>
+        <details open><summary>1. Kejar laba, bukan GMV</summary><div class="body"><p>GMV hanya total nilai pesanan. Dari situ masih keluar modal barang, fee platform, ongkir dan packing, retur, dan iklan.</p><p><code>Laba = GMV - retur - fee - modal - biaya lain - iklan</code></p><p>GMV Rp10 juta bisa berakhir rugi kalau semua biaya itu lupa dihitung. Lihat tab Ringkasan, bagian "Dari GMV ke laba bersih".</p></div></details>
+        <details><summary>2. Pakai diskon maksimal aman, jangan menebak</summary><div class="body"><p>Setiap produk punya batas diskon. Di atas batas itu margin turun di bawah target atau menjadi rugi. Batas ini ada di kolom "Diskon maks aman" di tab Produk.</p><ul><li>Produk bermargin tipis hampir tidak punya ruang diskon.</li><li>Gratis ongkir dan voucher platform juga memakan margin. Hitung semuanya sebagai satu paket promo.</li></ul></div></details>
+        <details><summary>3. Iklan baru layak kalau ROAS di atas ROAS impas</summary><div class="body"><p>ROAS impas = harga jual dibagi laba per unit sebelum iklan. Kalau ROAS iklan Anda di bawah angka itu, tiap rupiah iklan menambah rugi.</p><ul><li>Mulai dari budget kecil di 1 sampai 2 produk andalan.</li><li>Beri waktu beberapa hari sebelum menilai, jangan ubah pengaturan tiap jam.</li><li>Naikkan budget bertahap, misalnya 20 sampai 30%, hanya jika ROAS stabil di atas impas.</li></ul></div></details>
+        <details><summary>4. Jangan iklankan produk murah</summary><div class="body"><p>Biaya tetap per pesanan (packing, ongkir subsidi) hampir sama untuk produk Rp7.000 dan Rp100.000. Produk murah, seperti arang atau parfum stik, hampir tidak menyisakan laba. Jual sebagai tambahan di keranjang atau dalam bundling.</p></div></details>
+        <details><summary>5. Sisihkan biaya retur dan pembatalan</summary><div class="body"><p>Isi kolom retur dengan angka realistis, bukan nol. Untuk parfum dan perawatan tubuh, retur bisa datang dari botol bocor, aroma tidak cocok, atau salah paham ukuran.</p><ul><li>Tulis ukuran (ml) dan aroma dengan jelas di judul dan deskripsi.</li><li>Kemas dengan bubble wrap, terutama botol kaca.</li><li>Cek penyebab retur tiap minggu dan perbaiki yang berulang.</li></ul></div></details>
+        <details><summary>6. Siapkan stok sebelum kampanye besar</summary><div class="body"><p>Stok habis di tengah promo membuang biaya iklan dan traffic. Stok berlebih setelah promo mengikat modal. Pasang pengingat di tab Pengingat promo, lalu cek stok dan budget 3 hari sebelum kampanye.</p></div></details>
+        <details><summary>7. Cek tarif fee secara berkala</summary><div class="body"><p>Fee 8% di aplikasi ini hanya asumsi awal. Komisi, biaya transaksi, dan program tambahan bisa berbeda per kategori dan berubah dari waktu ke waktu. Samakan dengan rincian biaya di Seller Center, lalu ubah di tab Ringkasan.</p></div></details>
+        <details><summary>8. Hindari harga coret dan ulasan palsu</summary><div class="body"><p>Menaikkan harga coret secara palsu atau membeli ulasan melanggar aturan platform. Risikonya toko dibatasi, produk diturunkan, dan kepercayaan pembeli hilang. Cara yang aman: naikkan harga dasar secukupnya, lalu beri diskon yang masih sesuai batas aman.</p></div></details>
+        <details><summary>9. Periksa uang yang benar-benar cair</summary><div class="body"><p>Bandingkan angka di aplikasi ini dengan laporan penghasilan (settlement) dari platform. Selisih besar berarti ada biaya yang belum Anda hitung. GMV di dashboard tidak sama dengan uang yang masuk.</p></div></details>
+        <details><summary>10. Uji dulu sebelum ikut flash sale</summary><div class="body"><p>Isi diskon flash sale di kolom "Diskon promo", lihat tab Produk dan Grafik margin. Kalau banyak produk berstatus Tipis atau Rugi, kurangi diskon atau pilih produk lain yang ikut.</p></div></details>
+        <details><summary>11. Baca ROAS dan konversi bersama</summary><div class="body"><p>ROAS tinggi dari klik yang sedikit belum bisa dipercaya. Lihat juga konversi impas di Dasbor Iklan: kalau konversi produk di bawah angka itu, biaya per klik lebih besar dari laba per pesanan. Jangan menambah budget sebelum ROAS di atas target aman bertahan beberapa hari.</p></div></details>
+      </div>
+      <div class="panel">
+        <h2>Cadangan data</h2>
+        <p class="muted" style="margin-top:0">Data tersimpan di peramban ini saja. Salin cadangan agar tidak hilang bila data situs dihapus atau Anda pindah perangkat.</p>
+        <textarea id="bk_box" aria-label="Teks cadangan" spellcheck="false"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" type="button" id="bk_copy">Salin cadangan</button><button class="btn" type="button" id="bk_restore">Pulihkan dari teks</button></div>
+        <div class="msg" id="bk_msg" role="status"></div>
+      </div>
+      <div class="panel">
+        <h2>Istilah singkat</h2>
+        <dl>
+          <dt>GMV</dt><dd>Total nilai pesanan sebelum dipotong biaya. Definisinya bisa sedikit berbeda antar platform dan antar laporan.</dd>
+          <dt>Margin bersih</dt><dd>Laba dibagi nilai penjualan, dalam persen.</dd>
+          <dt>ROAS</dt><dd>GMV dari iklan dibagi biaya iklan.</dd>
+          <dt>ROAS impas</dt><dd>ROAS minimum supaya iklan tidak rugi. Rumus: harga jual dibagi laba per unit sebelum iklan.</dd>
+          <dt>AOV</dt><dd>Rata-rata nilai satu pesanan.</dd>
+          <dt>Retur</dt><dd>Pesanan yang dikembalikan atau dibatalkan setelah dibayar.</dd>
+        </dl>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var LS_KEY='gmv-dien-v1';
+var TABS=['dasbor','ringkasan','produk','grafik','pengingat','hitung','iklan','bantuan'];
+
+/* ---------- Data Dien (pricelist = harga jual) ---------- */
+var DIEN_RAW={
+"Perfume":[["khaulah 30ml",65000],["Zawji 20ml",45000],["Sweet Jasmine 15ml",35000],["Misk Taharah Spray 30ml",55000],["Misk Thaharah oles 3ml",25000],["Madinah 20ml",45000],["Secret 20ml",55000],["Amant 20ml",60000],["Tuberose 30ml",125000],["Tuberose 10ml",45000],["Sahl 20ml",45000],["Powdery Royal 20ml",55000],["Melati Indonesia 30ml",50000],["Fave 27ml",58000],["Minefield 30ml",75000],["Boreh Spray 20ml",43000],["Pink Luna 28ml",55000],["Pink Musk 25ml",59000],["Best Deal Series 1 13ml",25000],["Best Deal Series 2 15ml",25000],["Easzy 28ml",55000],["Berry Blush 32ml",60000],["Amber Noir 30ml",65000],["Irish 25ml",55000],["Body Mist 50ml",35000],["Parfum Stik 10ml",15000],["Daisy 15ml",45000],["Fleur 20ml",58000],["Rashem 20ml",55000],["Fresh Oud 15ml",25000],["Banyon 10ml",25000],["Spray Ramping Pengantin 30ml",65000],["Spray Ramping mini 10ml",25000],["Paket Bunga Ramping",65000]],
+"Kids Product":[["Sampo Kids 100ml",30000],["Conditioner Kids 100ml",30000],["Kids Girl 13ml",30000],["Kids Boy 13ml",30000]],
+"Hair Care":[["Shampo Bergamot 100ml",28000],["Shampo Ginseng 100ml",38000],["Shampo Dupa Pengantin 100ml",40000],["Paket Rambut Ginseng",80000],["Paket Rambut Dupa Pengantin",140000],["Hairmask Dupa Pengantin 100gr",40000],["Serum Dupa Pengantin 20ml",40000],["Hairmist 30ml",65000],["Hairmist 15ml",35000],["Hairmist Dupa Pengantin 10ml",27500],["Hair Tonic 30ml",50000]],
+"Body Care":[["Facewash Bidara 100ml",28000],["Deodorant Roll On 25ml",25000],["Deodorant Spray Women & Man 60ml",30000],["Deodorant Spray Women & Man 30ml",15000],["Deodorant Spray Mini 30ml",15000],["Hand & Body Lotion 60ml",38000],["Lulur Boreh Pengantin 100gr",40000],["Ratus Pengantin 30g",30000],["Paket Pengantin Pouch",135000],["Paket Pengantin Box",158000],["Massage Oil 60ml",30000],["Deo Lotion Non Perfume 15ml",20000],["Deo Lotion Irish 15ml",20000]],
+"Home Care":[["Multipurpose Perfume 100ml",24000],["Laundry 50ml",50000],["Room & Linen Spray 100ml",50000],["Pelicin & Pelembut Pakaian 100ml",35000],["Spray Sepatu 100ml",40000],["Arabian Dupa",35000],["Arang (Isi 6 Biji)",7000]]
+};
+function dienProducts(){
+  var out=[],n=0;
+  Object.keys(DIEN_RAW).forEach(function(cat){
+    DIEN_RAW[cat].forEach(function(it){
+      n++; out.push({id:'d'+n,src:'dien',cat:cat,name:it[0],list:it[1],price:it[1],cost:null,qty:10});
+    });
+  });
+  return out;
+}
+function defaultState(){
+  return {
+    products:dienProducts(),
+    settings:{costCut:40,fee:8,other:2000,disc:0,ret:3,ads:1000000,minM:10},
+    sampleQty:true, reminders:[], fired:{}, alerts:[], ads:[]
+  };
+}
+function load(){
+  try{
+    var raw=localStorage.getItem(LS_KEY);
+    if(raw){
+      var o=JSON.parse(raw), d=defaultState();
+      if(o && Array.isArray(o.products)){
+        o.settings=Object.assign(d.settings,o.settings||{});
+        o.reminders=o.reminders||[]; o.fired=o.fired||{}; o.alerts=o.alerts||[]; o.ads=o.ads||[];
+        return o;
+      }
+    }
+  }catch(e){}
+  return defaultState();
+}
+var S=load();
+function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
+
+/* ---------- Utils ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function rp(n){ if(!isFinite(n)) return '-'; var r=Math.round(n); return (r<0?'−':'')+'Rp'+Math.abs(r).toLocaleString('id-ID'); }
+function pct(x,d){ if(!isFinite(x)) return '-'; return (x*100).toFixed(d==null?1:d).replace('.',',')+'%'; }
+function num(v,def){ var n=parseFloat(v); return isFinite(n)?n:(def||0); }
+function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
+function pad(n){return (n<10?'0':'')+n;}
+
+/* ---------- Calculation ---------- */
+function unit(p){
+  var st=S.settings, disc=st.disc/100, ret=st.ret/100, fee=st.fee/100, minM=st.minM/100;
+  var price=p.price*(1-disc);
+  var cost=(p.cost!=null)?p.cost:p.list*(1-st.costCut/100);
+  var profit=price*(1-ret)*(1-fee)-cost-st.other;
+  var margin=price>0?profit/price:0;
+  var roas=profit>0?price/profit:null;
+  var den=(1-ret)*(1-fee)-minM, maxd=0, nospace=false;
+  if(den>0 && p.price>0){
+    var need=(cost+st.other)/den;
+    var d=1-need/p.price;
+    if(d<=0){maxd=0;nospace=true;} else maxd=Math.min(d,0.9);
+  } else {nospace=true;}
+  var status=profit<0?'rugi':(margin<minM?'tipis':'sehat');
+  return {price:price,cost:cost,profit:profit,margin:margin,roas:roas,maxd:maxd,nospace:nospace,status:status};
+}
+function totals(){
+  var st=S.settings, gmv=0,cost=0,orders=0,ret,fee,other,net;
+  S.products.forEach(function(p){
+    var u=unit(p), q=p.qty||0;
+    gmv+=u.price*q; cost+=u.cost*q; orders+=q;
+  });
+  ret=gmv*st.ret/100; net=gmv-ret; fee=net*st.fee/100; other=orders*st.other;
+  var before=net-fee-cost-other, ads=st.ads, profit=before-ads;
+  return {gmv:gmv,ret:ret,fee:fee,cost:cost,other:other,before:before,ads:ads,profit:profit,orders:orders,
+    margin:gmv>0?profit/gmv:0, roas:ads>0?gmv/ads:null, roasBE:before>0?gmv/before:null};
+}
+function risks(){
+  var st=S.settings, T=totals(), out=[];
+  var act=S.products.filter(function(p){return (p.qty||0)>0;});
+  var loss=act.filter(function(p){return unit(p).status==='rugi';});
+  if(loss.length) out.push({lv:'bad',t:'Produk rugi',m:loss.length+' produk yang terjual rugi sebelum iklan, di antaranya '+loss.slice(0,3).map(function(p){return p.name;}).join(', ')+'. Naikkan harga, kurangi diskon, atau berhenti menjual.'});
+  var over=act.filter(function(p){var u=unit(p);return u.status!=='rugi' && st.disc>u.maxd*100+0.05;});
+  if(over.length) out.push({lv:'warn',t:'Diskon terlalu dalam',m:'Diskon '+st.disc+'% melewati batas aman di '+over.length+' produk, sehingga marginnya di bawah '+st.minM+'%. Lihat kolom Diskon maks aman.'});
+  if(T.gmv>0 && T.before<=0) out.push({lv:'bad',t:'Sebelum iklan sudah rugi',m:'Biaya iklan hanya akan menambah rugi. Perbaiki harga, diskon, atau modal dulu.'});
+  else if(st.ads>0 && T.roasBE && T.roas && T.roas<T.roasBE) out.push({lv:'bad',t:'Iklan merugi',m:'ROAS aktual '+T.roas.toFixed(1).replace('.',',')+' lebih rendah dari ROAS impas '+T.roasBE.toFixed(1).replace('.',',')+'. Turunkan budget iklan atau perbaiki margin.'});
+  if(T.gmv>0 && T.profit<0 && T.before>0 && !(st.ads>0 && T.roas<T.roasBE)) out.push({lv:'bad',t:'Laba bersih negatif',m:'Toko rugi '+rp(-T.profit)+' pada angka ini.'});
+  if(T.gmv>0 && st.ads/T.gmv>0.2) out.push({lv:'warn',t:'Iklan memakan GMV',m:'Biaya iklan '+pct(st.ads/T.gmv,0)+' dari GMV. Cek apakah laba kotor Anda sanggup menanggungnya.'});
+  var cheap=act.filter(function(p){var u=unit(p);return u.profit<2000;});
+  if(cheap.length) out.push({lv:'warn',t:'Laba per unit sangat kecil',m:cheap.length+' produk menyisakan laba di bawah Rp2.000 per unit. Jual sebagai pelengkap atau bundling, jangan diiklankan.'});
+  if(st.ret<2) out.push({lv:'warn',t:'Retur terlalu optimis',m:'Retur '+st.ret+'% jarang realistis. Pakai sekitar 3 sampai 8%, lalu sesuaikan dengan data toko Anda.'});
+  if(st.fee<=0) out.push({lv:'warn',t:'Fee platform 0%',m:'Hampir semua marketplace memungut komisi dan biaya transaksi. Isi sesuai rincian biaya di Seller Center.'});
+  var dr=dashRisk(); if(dr) out.unshift(dr);
+  if(S.sampleQty) out.push({lv:'info',t:'Masih angka contoh',m:'Jumlah terjual masih contoh. Hasil di atas belum mencerminkan penjualan Anda.'});
+  if(!out.length || !out.some(function(r){return r.lv==='bad'||r.lv==='warn';})) out.unshift({lv:'good',t:'Tidak ada tanda bahaya',m:'Dengan asumsi saat ini, tidak ada produk rugi dan iklan masih di atas ROAS impas.'});
+  return out;
+}
+function alertHtml(list){
+  return list.map(function(r){return '<div class="alert '+r.lv+'"><strong>'+esc(r.t)+'.</strong><div>'+esc(r.m)+'</div></div>';}).join('');
+}
+
+/* ---------- Tabs ---------- */
+var curTab='dasbor';
+function setTab(name,fromHash){
+  if(TABS.indexOf(name)<0) name='dasbor';
+  curTab=name;
+  TABS.forEach(function(t){
+    var s=$('#tab-'+t); s.hidden=(t!==name);
+  });
+  $$('#tabs button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.tab===name?'true':'false');});
+  if(!fromHash){try{location.hash=name;}catch(e){}}
+  if(name==='grafik') renderCharts();
+  if(name==='pengingat'){renderCal();renderRemList();}
+  if(name==='iklan') renderAdTools();
+  if(name==='hitung') renderCalc();
+  if(name==='dasbor') renderDash();
+}
+$('#tabs').addEventListener('click',function(e){var b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab);});
+window.addEventListener('hashchange',function(){setTab(location.hash.slice(1),true);});
+
+/* ---------- Summary ---------- */
+function renderSummary(){
+  var T=totals(), st=S.settings;
+  var kp=[
+    ['GMV (nilai pesanan)',rp(T.gmv),T.orders.toLocaleString('id-ID')+' pesanan'],
+    ['Laba bersih',rp(T.profit),'sesudah iklan '+rp(T.ads)],
+    ['Margin bersih',pct(T.margin),'target minimum '+st.minM+'%'],
+    ['ROAS iklan',T.roas?T.roas.toFixed(1).replace('.',','):'-', 'impas '+(T.roasBE?T.roasBE.toFixed(1).replace('.',','):'tidak ada')]
+  ];
+  var cls=[ '', T.profit<0?'neg':'pos', T.margin<st.minM/100?(T.margin<0?'neg':''):'pos', (T.roas&&T.roasBE&&T.roas<T.roasBE)?'neg':'pos'];
+  $('#kpis').innerHTML=kp.map(function(k,i){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+cls[i]+'">'+k[1]+'</b><small>'+k[2]+'</small></div>';}).join('');
+  var rows=[
+    ['GMV',T.gmv,'',''],
+    ['Retur dan batal',-T.ret,'r',''],
+    ['Fee platform',-T.fee,'r',''],
+    ['Modal barang',-T.cost,'r',''],
+    ['Biaya lain (packing, ongkir)',-T.other,'r',''],
+    ['Laba sebelum iklan',T.before,T.before<0?'r':'g','total'],
+    ['Biaya iklan',-T.ads,'r',''],
+    ['Laba bersih',T.profit,T.profit<0?'r':'g','total']
+  ];
+  $('#wf').innerHTML=rows.map(function(r){
+    var w=T.gmv>0?clamp(Math.abs(r[1])/T.gmv*100,0,100):0;
+    return '<tr class="'+r[3]+'"><td>'+r[0]+'</td><td><div class="bar '+r[2]+'" style="width:'+w.toFixed(1)+'%"></div></td><td>'+rp(r[1])+(T.gmv>0?' <span class="muted">('+pct(r[1]/T.gmv,0)+')</span>':'')+'</td></tr>';
+  }).join('');
+  var R=risks();
+  $('#riskSummary').innerHTML=alertHtml(R);
+  $('#riskFull').innerHTML=alertHtml(R);
+  var n=R.filter(function(r){return r.lv==='bad'||r.lv==='warn';}).length;
+  var b=$('#riskBadge'); b.hidden=!n; b.textContent=n;
+  $('#sampleNote').hidden=!S.sampleQty;
+  if(detailId) fillDetail();
+  if(curTab==='iklan') renderAdTools();
+}
+
+/* ---------- Detail produk ---------- */
+var detailId=null;
+function getP(id){return S.products.filter(function(x){return x.id===id;})[0];}
+function openDetail(id){
+  var p=getP(id); if(!p) return; detailId=id;
+  $('#listView').hidden=true;
+  var d=$('#detailView'); d.hidden=false;
+  d.innerHTML=
+  '<div class="panel"><div class="row" style="justify-content:space-between;align-items:center"><button class="btn" type="button" data-act="closedetail">&lsaquo; Kembali ke daftar produk</button><span id="dStatus"></span></div>'+
+  '<h2 style="margin-top:14px">'+esc(p.name)+'</h2><p class="muted" style="margin:2px 0 14px">'+esc(p.cat)+(p.src==='manual'?' &middot; produk manual':' &middot; produk Dien')+'</p>'+
+  '<div class="form-grid" style="max-width:520px"><label>Harga jual (Rp)<input id="d_price" type="number" min="0" step="500" inputmode="numeric" value="'+p.price+'"></label>'+
+  '<label>Terjual per bulan<input id="d_qty" type="number" min="0" step="1" inputmode="numeric" value="'+(p.qty||0)+'"></label></div></div>'+
+  '<div class="kpis" id="dKpis"></div>'+
+  '<div class="grid2"><div class="panel"><h3>Rincian per unit</h3><table class="wf" id="dWf"></table></div>'+
+  '<div class="panel"><h3>Posisi produk di toko</h3><dl class="kv" id="dShare"></dl></div></div>'+
+  '<div class="panel"><h3>Simulasi diskon untuk produk ini</h3><div class="tablewrap" style="max-height:none"><table class="prod sim" style="min-width:680px"><thead><tr><th>Diskon</th><th>Harga jual</th><th>Laba / unit</th><th>Margin</th><th>GMV produk</th><th>Laba total</th><th style="text-align:center">Status</th></tr></thead><tbody id="dSim"></tbody></table></div><p class="muted" style="margin:10px 0 0">Laba sebelum iklan, memakai asumsi retur, fee, dan biaya lain di tab Ringkasan. Baris biru adalah diskon yang sedang dipakai.</p></div>';
+  fillDetail();
+  try{d.scrollIntoView({block:'start'});}catch(e){}
+}
+function closeDetail(){
+  detailId=null; var d=$('#detailView'); d.hidden=true; d.innerHTML=''; $('#listView').hidden=false; renderTable();
+}
+function fillDetail(){
+  var p=getP(detailId); if(!p||!$('#dKpis')) return;
+  var st=S.settings, u=unit(p), q=p.qty||0, T=totals();
+  var gmvP=u.price*q, share=T.gmv>0?gmvP/T.gmv:0, ads=T.gmv>0?T.ads*share:0;
+  var before=u.profit*q, after=before-ads, mAfter=gmvP>0?after/gmvP:0;
+  var pill=q>0?'<span class="pill '+u.status+'">'+({sehat:'Sehat',tipis:'Tipis',rugi:'Rugi'}[u.status])+'</span>':'<span class="pill diam">Belum dijual</span>';
+  $('#dStatus').innerHTML=pill;
+  var kp=[['GMV produk ini',rp(gmvP),q.toLocaleString('id-ID')+' unit x '+rp(u.price)],
+          ['Laba sebelum iklan',rp(before),'margin '+pct(u.margin)],
+          ['Laba sesudah iklan',rp(after),'jatah iklan '+rp(ads)+', margin '+pct(mAfter)],
+          ['Pangsa GMV toko',pct(share),'dari GMV toko '+rp(T.gmv)]];
+  var cl=['',before<0?'neg':'pos',after<0?'neg':'pos',''];
+  $('#dKpis').innerHTML=kp.map(function(k,i){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+cl[i]+'">'+k[1]+'</b><small>'+k[2]+'</small></div>';}).join('');
+  var rows=[['Harga jual setelah diskon',u.price,''],['Retur dan batal',-u.price*st.ret/100,'r'],['Fee platform',-u.price*(1-st.ret/100)*st.fee/100,'r'],['Modal barang',-u.cost,'r'],['Biaya lain (packing, ongkir)',-st.other,'r'],['Laba per unit',u.profit,u.profit<0?'r':'g']];
+  $('#dWf').innerHTML=rows.map(function(r,i){
+    var w=u.price>0?clamp(Math.abs(r[1])/u.price*100,0,100):0;
+    return '<tr class="'+(i===5?'total':'')+'"><td>'+r[0]+'</td><td><div class="bar '+r[2]+'" style="width:'+w.toFixed(1)+'%"></div></td><td>'+rp(r[1])+'</td></tr>';
+  }).join('');
+  var rank=S.products.filter(function(x){return unit(x).profit>u.profit;}).length+1;
+  var maxC=Math.max(0,u.margin-st.minM/100);
+  var kv=[['Harga pricelist',rp(p.list)],['Diskon promo saat ini',st.disc+'%'],['Pangsa jumlah pesanan',T.orders>0?pct(q/T.orders):'-'],['Jatah biaya iklan (sebanding GMV)',rp(ads)],
+    ['ROAS impas produk',u.roas?u.roas.toFixed(2).replace('.',','):'tidak ada'],['Diskon maks aman',u.nospace?'tidak ada':pct(u.maxd,0)],
+    ['Komisi affiliate maks aman',maxC>0?pct(maxC,1)+' dari harga':'tidak ada ruang'],['Peringkat laba per unit','#'+rank+' dari '+S.products.length]];
+  $('#dShare').innerHTML=kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>';}).join('');
+  var ds=[0,5,10,15,20,25,30], cur=st.disc;
+  $('#dSim').innerHTML=ds.map(function(d){
+    var price=p.price*(1-d/100), profit=price*(1-st.ret/100)*(1-st.fee/100)-u.cost-st.other, m=price>0?profit/price:0;
+    var s=profit<0?'rugi':(m<st.minM/100?'tipis':'sehat');
+    return '<tr class="'+(d===cur?'cur':'')+'"><td>'+d+'%</td><td>'+rp(price)+'</td><td class="'+(profit<0?'neg':'')+'">'+rp(profit)+'</td><td>'+pct(m)+'</td><td>'+rp(price*q)+'</td><td class="'+(profit<0?'neg':'')+'">'+rp(profit*q)+'</td><td style="text-align:center"><span class="pill '+s+'">'+({sehat:'Sehat',tipis:'Tipis',rugi:'Rugi'}[s])+'</span></td></tr>';
+  }).join('');
+}
+$('#detailView').addEventListener('input',function(e){
+  var p=getP(detailId); if(!p) return;
+  if(e.target.id==='d_price'){p.price=Math.max(0,num(e.target.value,0));}
+  else if(e.target.id==='d_qty'){p.qty=Math.max(0,Math.round(num(e.target.value,0))); S.sampleQty=false;}
+  else return;
+  save(); renderSummary();
+});
+
+/* ---------- Alat di tab Iklan & komisi ---------- */
+function renderAdTools(){
+  var sel=$('#a_prod'); if(!sel) return;
+  renderAdManual(); renderAdList();
+  var key=S.products.map(function(p){return p.id;}).join(',');
+  if(sel.dataset.key!==key){
+    var cur=sel.value;
+    sel.innerHTML=S.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' ('+esc(p.cat)+')</option>';}).join('');
+    sel.dataset.key=key; if(cur&&getP(cur)) sel.value=cur;
+  }
+  var top=S.products.map(function(p){return {p:p,u:unit(p)};}).sort(function(a,b){return b.u.profit-a.u.profit;}).slice(0,5);
+  $('#adTop').innerHTML=top.map(function(x){return '<div class="alert good"><strong>'+esc(x.p.name)+'.</strong><div>Laba '+rp(x.u.profit)+' per unit, ROAS impas '+(x.u.roas?x.u.roas.toFixed(2).replace('.',','):'tidak ada')+'.</div></div>';}).join('');
+  var p=getP(sel.value)||S.products[0];
+  if(!p){$('#a_out').innerHTML='<dt>Belum ada produk</dt><dd></dd>';}
+  else{
+    var c=clamp(num($('#a_comm').value,0),0,90)/100, u=unit(p), comm=u.price*c, prof=u.profit-comm, m=u.price>0?prof/u.price:0;
+    var maxC=Math.max(0,u.margin-S.settings.minM/100), s=prof<0?'rugi':(m<S.settings.minM/100?'tipis':'sehat');
+    $('#a_out').innerHTML=[['Harga setelah diskon',rp(u.price)],['Komisi kreator',rp(comm)],['Laba per unit tanpa affiliate',rp(u.profit)],['Laba per unit dengan affiliate',rp(prof)],['Margin dengan affiliate',pct(m)],['Komisi maks aman',maxC>0?pct(maxC,1):'tidak ada ruang'],['Status','<span class="pill '+s+'">'+({sehat:'Sehat',tipis:'Tipis',rugi:'Rugi'}[s])+'</span>']].map(function(x){return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>';}).join('');
+  }
+  var T=totals(), roas=Math.max(0,num($('#a_roas').value,0)), org=clamp(num($('#a_org').value,0),0,100), real=roas*(1-org/100), be=T.roasBE;
+  var verdict=!be?'<span class="pill rugi">Sebelum iklan sudah rugi</span>':(real>=be?'<span class="pill sehat">Masih di atas impas</span>':'<span class="pill rugi">Di bawah impas</span>');
+  $('#a_roasOut').innerHTML=[['ROAS di dashboard',roas.toFixed(1).replace('.',',')],['ROAS tambahan (setelah mengurangi organik)',real.toFixed(1).replace('.',',')],['ROAS impas toko Anda',be?be.toFixed(1).replace('.',','):'tidak ada'],['Hasil',verdict]].map(function(x){return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>';}).join('');
+}
+/* ---------- Hitung iklan manual ---------- */
+function f2(x){return (isFinite(x)?x:0).toFixed(2).replace('.',',');}
+function readAd(){
+  function v(id){var s=$('#'+id).value.trim(); return s===''?NaN:parseFloat(s);}
+  var sh=v('m_share');
+  return {name:$('#m_name').value.trim(),mp:$('#m_mp').value,type:$('#m_type').value,price:v('m_price'),cost:v('m_cost'),ads:v('m_ads'),gmv:v('m_gmv'),orders:v('m_orders'),
+    org:isNaN(v('m_org'))?0:clamp(v('m_org'),0,100),target:v('m_target'),aff:$('#m_aff').value==='ya',comm:v('m_comm'),share:isNaN(sh)?100:sh};
+}
+function calcAd(i){
+  var st=S.settings, err=[];
+  if(!(i.price>0)) err.push('Isi harga jual per unit lebih dari 0.');
+  if(!isFinite(i.cost)||i.cost<0) err.push('Isi modal per unit (boleh 0).');
+  if(!(i.ads>0)) err.push('Isi biaya iklan lebih dari 0.');
+  if(!isFinite(i.gmv)||i.gmv<0) err.push('Isi penjualan dari iklan (GMV iklan), boleh 0.');
+  if(i.aff && !(i.comm>0 && i.comm<=90)) err.push('Komisi affiliate (%) wajib diisi, antara 0,1 dan 90.');
+  if(i.aff && !(i.share>0 && i.share<=100)) err.push('Isi porsi pesanan lewat affiliate antara 1 dan 100%.');
+  if(err.length) return {err:err};
+  var orders=(isFinite(i.orders)&&i.orders>0)?i.orders:i.gmv/i.price, minM=st.minM/100;
+  var gmv=i.gmv, ret=gmv*st.ret/100, net=gmv-ret, fee=net*st.fee/100, cost=orders*i.cost, other=orders*st.other;
+  var comm=i.aff?gmv*(i.share/100)*(i.comm/100):0;
+  var before=net-fee-cost-other-comm, beforeNo=before+comm, profit=before-i.ads;
+  var mB=gmv>0?before/gmv:0, roas=gmv/i.ads;
+  var be=before>0?gmv/before:null, beNo=beforeNo>0?gmv/beforeNo:null;
+  var minR=(gmv>0&&mB>minM)?1/(mB-minM):null;
+  var incR=roas*(1-i.org/100), incProfit=gmv*(1-i.org/100)*mB-i.ads;
+  var margin=gmv>0?profit/gmv:0;
+  var status=profit<0?'rugi':(margin<minM?'tipis':'sehat');
+  return {orders:orders,gmv:gmv,ret:ret,fee:fee,cost:cost,other:other,comm:comm,before:before,profit:profit,margin:margin,roas:roas,acos:gmv>0?i.ads/gmv:null,
+    be:be,beNo:beNo,minR:minR,incR:incR,incProfit:incProfit,cpa:i.ads/orders,maxBE:Math.max(0,before),maxMin:Math.max(0,gmv*(mB-minM)),status:status,minM:minM};
+}
+var ST={sehat:'Sehat',tipis:'Tipis',rugi:'Rugi'};
+function renderAdManual(){
+  var st=S.settings;
+  $('#m_fee').textContent=st.fee; $('#m_ret').textContent=st.ret; $('#m_oth').textContent=rp(st.other); $('#m_min').textContent=st.minM;
+  var pick=$('#m_pick'), key=S.products.map(function(p){return p.id;}).join(',');
+  if(pick.dataset.key!==key){
+    var cur=pick.value;
+    pick.innerHTML='<option value="">Isi manual</option>'+S.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' ('+esc(p.cat)+')</option>';}).join('');
+    pick.dataset.key=key; if(cur&&getP(cur)) pick.value=cur;
+  }
+  $('#m_affBox').hidden=($('#m_aff').value!=='ya');
+  var i=readAd(), r=calcAd(i), out=$('#m_out');
+  var msg=$('#m_msg');
+  if(r.err){
+    out.innerHTML='<div class="alert warn"><strong>Lengkapi dulu.</strong><div>'+r.err.map(esc).join('<br>')+'</div></div>';
+    return;
+  }
+  var be=r.be, ok=be&&r.roas>=be;
+  var rows=[
+    ['ROAS aktual','GMV iklan dibagi biaya iklan',f2(r.roas),ok?'sehat':'rugi'],
+    ['ACOS','Biaya iklan dibagi GMV iklan',r.acos==null?'-':pct(r.acos,1),''],
+    [i.aff?'ROAS impas (dengan affiliate)':'ROAS impas','Di bawah angka ini kampanye rugi',be?f2(be):'tidak ada',''],
+    ['ROAS target margin minimum '+S.settings.minM+'%','ROAS yang dibutuhkan agar margin bersih mencapai minimum',r.minR?f2(r.minR):'tidak tercapai',r.minR?(r.roas>=r.minR?'sehat':'tipis'):'rugi'],
+    ['ROAS tambahan (organik '+i.org+'%)','ROAS aktual dikurangi pesanan yang tetap terjadi tanpa iklan',f2(r.incR),be?(r.incR>=be?'sehat':'rugi'):'rugi']
+  ];
+  if(i.aff) rows.splice(3,0,['ROAS impas (tanpa affiliate)','Sebagai pembanding: tanpa komisi '+i.comm+'%',r.beNo?f2(r.beNo):'tidak ada','']);
+  if(isFinite(i.target)&&i.target>0) rows.push(['ROAS target di iklan','Target yang Anda atur. Selisih dengan ROAS impas: '+(be?f2(i.target-be):'-'),f2(i.target),be?(i.target>=be?'sehat':'rugi'):'rugi']);
+  if(be) rows.push(['Selisih ROAS aktual dan impas','Positif berarti ada ruang aman',(r.roas-be>=0?'+':'')+f2(r.roas-be).replace(/^(-?)/,'$1'),r.roas>=be?'sehat':'rugi']);
+  var cls={sehat:'pos',rugi:'neg',tipis:'',"":""};
+  var t1='<table class="cmp" style="min-width:0"><thead><tr><th>Nilai ROAS</th><th style="text-align:right">Hasil</th></tr></thead><tbody>'+rows.map(function(x){
+    return '<tr><td style="min-width:0">'+esc(x[0])+'<div class="muted" style="font-weight:400;font-size:12.5px">'+esc(x[1])+'</div></td><td style="text-align:right;font-weight:700;white-space:nowrap" class="'+cls[x[3]]+'">'+x[2]+'</td></tr>';
+  }).join('')+'</tbody></table>';
+  var kv=[['Jumlah pesanan',Math.round(r.orders).toLocaleString('id-ID')],['Biaya iklan per pesanan',rp(r.cpa)],['GMV iklan',rp(r.gmv)],['Retur dan batal',rp(-r.ret)],['Fee platform',rp(-r.fee)],['Modal barang',rp(-r.cost)],['Biaya lain',rp(-r.other)]];
+  if(i.aff) kv.push(['Komisi affiliate',rp(-r.comm)]);
+  kv.push(['Laba sebelum iklan',rp(r.before)],['Biaya iklan',rp(-i.ads)],['Laba bersih kampanye',rp(r.profit)],['Margin bersih',pct(r.margin)],['Laba tambahan sebenarnya (tanpa pesanan organik)',rp(r.incProfit)],['Biaya iklan maks agar impas',rp(r.maxBE)],['Biaya iklan maks agar margin '+S.settings.minM+'%',rp(r.maxMin)]);
+  out.innerHTML='<div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Hasil</h3><span class="pill '+r.status+'">'+ST[r.status]+'</span></div><div class="tablewrap" style="max-height:none;margin-bottom:12px">'+t1+'</div><dl class="kv">'+kv.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>';}).join('')+'</dl>';
+  window.__lastAd=r;
+}
+function renderAdList(){
+  var box=$('#m_list');
+  if(!S.ads.length){box.innerHTML='<p class="muted" style="margin:0">Belum ada kampanye tersimpan. Isi form di atas lalu klik Simpan kampanye.</p>';return;}
+  box.innerHTML='<div class="tablewrap" style="max-height:none"><table class="cmp" style="min-width:860px"><thead><tr><th>Kampanye</th><th>Marketplace / jenis</th><th style="text-align:right">Biaya iklan</th><th style="text-align:right">GMV iklan</th><th style="text-align:right">ROAS</th><th style="text-align:right">ROAS impas</th><th style="text-align:right">ROAS tambahan</th><th style="text-align:right">Laba bersih</th><th>Status</th><th></th></tr></thead><tbody>'+
+  S.ads.map(function(a){return '<tr><td>'+esc(a.name)+(a.aff?'<span class="tag">affiliate '+a.comm+'%</span>':'')+'</td><td style="font-weight:400">'+esc(a.mp)+' &middot; '+esc(a.type)+'</td><td style="text-align:right">'+rp(a.ads)+'</td><td style="text-align:right">'+rp(a.gmv)+'</td><td style="text-align:right;font-weight:700">'+f2(a.roas)+'</td><td style="text-align:right">'+(a.be?f2(a.be):'-')+'</td><td style="text-align:right">'+f2(a.incR)+'</td><td style="text-align:right" class="'+(a.profit<0?'neg':'pos')+'">'+rp(a.profit)+'</td><td><span class="pill '+a.status+'">'+ST[a.status]+'</span></td><td><button class="btn small danger" type="button" data-mdel="'+a.id+'">Hapus</button></td></tr>';}).join('')+'</tbody></table></div>';
+}
+$('#m_list').addEventListener('click',function(e){
+  var b=e.target.closest('[data-mdel]'); if(!b) return; var id=b.dataset.mdel;
+  twoStep(b,'m'+id,'Yakin?',function(){S.ads=S.ads.filter(function(a){return a.id!==id;}); save(); renderAdList();});
+});
+$('#mForm').addEventListener('submit',function(e){e.preventDefault();});
+$('#mForm').addEventListener('input',function(e){ if(e.target.id!=='m_pick'){ $('#m_msg').textContent=''; renderAdManual(); } });
+$('#mForm').addEventListener('change',function(e){
+  if(e.target.id==='m_pick'){
+    var p=getP(e.target.value);
+    if(p){ $('#m_price').value=p.price; $('#m_cost').value=Math.round(unit(p).cost); if(!$('#m_name').value.trim()) $('#m_name').value=p.name; }
+  }
+  renderAdManual();
+});
+$('#m_save').addEventListener('click',function(){
+  var i=readAd(), r=calcAd(i), m=$('#m_msg');
+  if(r.err){m.className='msg err'; m.textContent=r.err[0]; return;}
+  S.ads.unshift({id:'a'+Date.now().toString(36),name:i.name||('Kampanye '+(S.ads.length+1)),mp:i.mp,type:i.type,ads:i.ads,gmv:i.gmv,aff:i.aff,comm:i.comm,
+    roas:r.roas,be:r.be,incR:r.incR,profit:r.profit,status:r.status});
+  save(); renderAdList(); m.className='msg ok'; m.textContent='Kampanye disimpan di daftar bawah.';
+});
+$('#m_reset').addEventListener('click',function(){
+  ['m_name','m_price','m_cost','m_ads','m_gmv','m_orders','m_target','m_comm'].forEach(function(id){$('#'+id).value='';});
+  $('#m_org').value=0; $('#m_share').value=100; $('#m_aff').value='tidak'; $('#m_pick').value=''; $('#m_msg').textContent='';
+  renderAdManual(); $('#m_name').focus();
+});
+['a_prod','a_comm','a_roas','a_org'].forEach(function(id){var el=$('#'+id); el.addEventListener('input',renderAdTools); el.addEventListener('change',renderAdTools);});
+
+/* ======================= DASBOR IKLAN + KALKULATOR OTOMATIS ======================= */
+function round1(x){return Math.round(x*10)/10;}
+function round2(x){return Math.round(x*100)/100;}
+function fmtInt(n){return (n==null||!isFinite(n))?'-':Math.round(n).toLocaleString('id-ID');}
+function short(n){
+  if(n==null||!isFinite(n)) return '-';
+  var a=Math.abs(n);
+  if(a>=1e6) return (n/1e6).toFixed(1).replace('.',',').replace(/,0$/,'')+'JT';
+  if(a>=1e3) return (n/1e3).toFixed(1).replace('.',',').replace(/,0$/,'')+'RB';
+  return String(Math.round(n));
+}
+function rpShort(n){return (n<0?'−':'')+'Rp'+short(Math.abs(n));}
+function sales2(n){if(n==null||!isFinite(n)) return '-'; return n>=1e6?(n/1e6).toFixed(2).replace('.',',')+'JT':(n/1e3).toFixed(2).replace('.',',')+'RB';}
+function fz(n){return (n==null||!isFinite(n))?'-':n.toFixed(2).replace('.',',').replace(/,?0+$/,'');}
+function rs(x){return (x==null||!isFinite(x))?'tidak ada':x.toFixed(2).replace('.',',');}
+function statusPill(s){return '<span class="pill '+s+'">'+({sehat:'Aman',tipis:'Di bawah target',rugi:'Rugi'}[s])+'</span>';}
+function kvHtml(rows){return rows.map(function(x){return '<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>';}).join('');}
+function atagHtml(){return '<em class="atag '+(S.manual?'man':'auto')+'">'+(S.manual?'manual':'otomatis')+'</em>';}
+function busy(el){var a=document.activeElement; return !!(a&&el.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName));}
+function ddmm(d){var p=String(d).split('-'); return p[2]+'-'+p[1];}
+function niceMax(v){if(!(v>0)) return 1; var e=Math.pow(10,Math.floor(Math.log(v)/Math.LN10)),f=v/e; return (f<=1?1:f<=2?2:f<=5?5:10)*e;}
+function pidByName(n){var p=S.products.filter(function(x){return x.name===n;})[0]; return p?p.id:'';}
+
+function shDefault(){return {period:'1 Minggu Terakhir (GMT+7)',biaya:1900000,penjualan:4200000,terjual:120,konversi:98,pesanan:68,dilihat:100700,klik:3100,voucher:179000,vsales:892500,sample:true};}
+function perfDefault(){
+  function I(id,name,link,s,c,v){return {id:id,name:name,link:pidByName(link),sales:s,ctr:c,conv:v};}
+  return [
+    I('q1','parfum mobil dien perfume aroma relaksasi nyaman diperjalanan 5ml','',81000,2.78,50),
+    I('q2','Dien Parfum Spray Bunga Ramping Pengantin Melati Bpom Non Alkohol','Spray Ramping Pengantin 30ml',81000,5.44,1.08),
+    I('q3','Dien Powdery Royal Fresh Powdery Clean Non Alkohol Bpom 20ml','Powdery Royal 20ml',47500,4.21,0.96),
+    I('q4','Dien Tuberose Extrait de Parfum Aroma Sedap Malam Bpom Non Alkohol 30ml','Tuberose 30ml',null,null,null),
+    I('q5','Dien Parfum Pengantin Arabian Boreh Spray Aroma Bunga Jasmine & Rempah','Boreh Spray 20ml',45000,3.24,10),
+    I('q6','Cem Ceman Pengantin Arab Pengharum Badan & Rambut Aroma Dupa Jeruk Purut','',32000,5.04,2.94),
+    I('q7','Dien Multipurpose Perfume Untuk Segala Jenis Kain Aroma Mewah Tahan Lama','Multipurpose Perfume 100ml',23500,6.04,9.09),
+    I('q8','Try Me Tester Parfum Dien Kemasan 2ml All Varian Parfum Dien Bpom','',null,null,null)
+  ];
+}
+function ensureState(){
+  if(typeof S.manual!=='boolean') S.manual=false;
+  if(!S.sh) S.sh=shDefault();
+  if(!Array.isArray(S.daily)) S.daily=[];
+  if(!Array.isArray(S.ads)) S.ads=[];
+  if(!Array.isArray(S.perf)) S.perf=perfDefault();
+  if(!S.perfPeriod) S.perfPeriod='Sesuai layar Seller Center (periode tidak terlihat di layar)';
+  if(!S.dash) S.dash={series:{ads:true,sales:true},sub:'ringkasan',sort:'sales',aff:'tidak',comm:null,vcost:'tidak',edit:null};
+  if(!S.dm) S.dm={m0:null,m:null,roas:null,ctr:null};
+}
+
+/* ---------- Perhitungan dasbor (semua target otomatis; manual bila Mode manual aktif) ---------- */
+function dashCalc(forceAuto){
+  var h=S.sh, st=S.settings, D=S.dash, man=S.manual&&!forceAuto, dm=S.dm||{}, R={err:[]};
+  R.biaya=h.biaya||0; R.jual=h.penjualan||0;
+  var klik=h.klik||0, lihat=h.dilihat||0, pes=h.pesanan||0;
+  R.roasAuto=R.biaya>0?R.jual/R.biaya:null;
+  R.ctrAuto=lihat>0?klik/lihat:null;
+  var sw=0,sm=0,n=0;
+  S.perf.forEach(function(x){var p=getP(x.link); if(p&&x.sales>0){sw+=x.sales; sm+=x.sales*unit(p).margin; n++;}});
+  R.m0Auto=null; R.m0Src='';
+  if(sw>0){R.m0Auto=sm/sw; R.m0Src='Margin sebelum iklan dihitung dari '+n+' produk terhubung di tab Produk, ditimbang menurut penjualannya.';}
+  else{var T=totals(); if(T.gmv>0){R.m0Auto=T.before/T.gmv; R.m0Src='Margin sebelum iklan memakai rata-rata semua produk Dien (tab Ringkasan) karena belum ada produk terhubung.';}}
+  R.mAuto=st.minM/100;
+  R.roasAct=(man&&dm.roas!=null)?dm.roas:R.roasAuto;
+  R.ctr=(man&&dm.ctr!=null)?dm.ctr/100:R.ctrAuto;
+  R.m0=(man&&dm.m0!=null)?dm.m0/100:R.m0Auto;
+  R.m=(man&&dm.m!=null)?dm.m/100:R.mAuto;
+  R.aff=D.aff==='ya'; R.comm=(R.aff&&D.comm>0)?D.comm/100:0;
+  R.cpc=klik>0?R.biaya/klik:null; R.cpo=pes>0?R.biaya/pes:null; R.aov=pes>0?R.jual/pes:null; R.conv=klik>0?pes/klik:null;
+  if(R.aff&&!(D.comm>0)) R.err.push('Komisi affiliate wajib diisi (%) karena Anda memilih ada penjualan lewat affiliate. Pilih "Tidak" jika tidak ada.');
+  if(R.m0==null) R.err.push('Margin sebelum iklan belum bisa dihitung. Hubungkan produk di tab Produk, atau isi dengan Mode manual.');
+  if(!(R.biaya>0)) R.err.push('Isi Biaya Iklan lebih dari 0 untuk menilai iklan.');
+  if(R.err.length){R.ok=false;return R;}
+  R.m0adj=R.m0-R.comm;
+  R.vcost=D.vcost==='ya'?(h.voucher||0):0;
+  R.gross=R.jual*R.m0adj; R.net=R.gross-R.biaya-R.vcost; R.netMargin=R.jual>0?R.net/R.jual:0;
+  R.beR=R.m0adj>0?1/R.m0adj:null; R.tgtR=R.m0adj>R.m?1/(R.m0adj-R.m):null;
+  R.maxBE=Math.max(0,R.gross-R.vcost); R.maxT=Math.max(0,R.jual*(R.m0adj-R.m)-R.vcost);
+  R.ppo=R.aov!=null?R.aov*R.m0adj:null;
+  R.convBE=(R.cpc!=null&&R.ppo>0)?R.cpc/R.ppo:null;
+  R.convT=(R.cpc!=null&&R.aov!=null&&R.aov*(R.m0adj-R.m)>0)?R.cpc/(R.aov*(R.m0adj-R.m)):null;
+  var ra=R.roasAct;
+  R.status=(R.net<0||(R.beR!=null&&ra!=null&&ra<R.beR))?'rugi':(((R.tgtR!=null&&ra!=null&&ra<R.tgtR)||R.netMargin<R.m)?'tipis':'sehat');
+  R.ok=true; return R;
+}
+function perfInfo(x,R){
+  var p=getP(x.link);
+  if(!p) return {p:null,verdict:'info',msg:'Belum terhubung ke produk Dien. Klik Ubah dan pilih produknya agar margin dan target ROAS terisi otomatis.',chips:[]};
+  var u=unit(p), m=R.m!=null?R.m:S.settings.minM/100, profit=u.profit-u.price*(R.comm||0), margin=u.price>0?profit/u.price:0;
+  var roasBE=profit>0?u.price/profit:null, roasT=margin>m?1/(margin-m):null;
+  var convBE=(R.cpc!=null&&profit>0)?R.cpc/profit*100:null, conv=x.conv, v='info', msg;
+  var chips=['Margin '+pct(margin),'ROAS impas '+rs(roasBE),'ROAS target '+rs(roasT)]; if(convBE!=null) chips.push('Konversi impas '+fz(convBE)+'%');
+  if(profit<=0){v='bad';msg='Rugi sebelum iklan. Jangan diiklankan. Naikkan harga, kurangi diskon, atau turunkan modal.';}
+  else if(conv==null||convBE==null){msg=convBE!=null?'Isi tingkat konversi untuk menilai produk ini. Konversi impas: '+fz(convBE)+'%.':'Konversi impas belum bisa dihitung. Isi Jumlah Klik dan Biaya Iklan di Ringkasan.';}
+  else if(conv<convBE){v='bad';msg='Konversi '+fz(conv)+'% di bawah konversi impas '+fz(convBE)+'% pada biaya per klik '+rp(R.cpc)+'. Iklan produk ini cenderung rugi. Perbaiki foto, judul, harga, atau voucher dulu.';}
+  else if(roasT==null){v='warn';msg='Konversi cukup, tetapi margin '+pct(margin)+' di bawah target '+pct(m,0)+'. Naikkan harga atau kurangi komisi.';}
+  else{v='good';msg='Layak diiklankan. Konversi '+fz(conv)+'% di atas impas '+fz(convBE)+'%. Targetkan ROAS minimal '+rs(roasT)+'.';}
+  if(conv!=null&&conv>=30) msg+=' Konversi sangat tinggi biasanya dari klik yang sedikit. Tunggu data lebih banyak sebelum menambah budget.';
+  return {p:p,verdict:v,msg:msg,chips:chips,convBE:convBE,roasBE:roasBE,roasT:roasT};
+}
+function defaultPid(){
+  var R=dashCalc(true), best=null, bs=-1e9;
+  S.perf.forEach(function(x){var p=getP(x.link); if(!p||x.conv==null) return; var i=perfInfo(x,R); if(i.convBE!=null&&x.conv-i.convBE>bs){bs=x.conv-i.convBE;best=p.id;}});
+  if(best) return best;
+  var top=S.products.slice().sort(function(a,b){return unit(b).profit-unit(a).profit;})[0];
+  return top?top.id:null;
+}
+function dashRisk(){
+  var R=dashCalc(); if(!R.ok||R.status!=='rugi') return null;
+  return {lv:'bad',t:'Iklan Shopee merugi',m:'ROAS '+rs(R.roasAct)+' di bawah ROAS impas '+rs(R.beR)+'. Perkiraan rugi '+rp(-R.net)+' pada '+(S.sh.period||'periode ini')+'. Lihat tab Dasbor Iklan.'};
+}
+
+/* ---------- Tampilan dasbor ---------- */
+function renderGrid(R){
+  var h=S.sh, ser=S.dash.series, auto=S.manual?'manual':'otomatis';
+  var cards=[['Biaya Iklan',rpShort(h.biaya||0),'ads'],['Penjualan',rpShort(h.penjualan||0),'sales'],['Efektivitas Iklan',R.roasAct==null?'-':R.roasAct.toFixed(2).replace('.',','),null,auto],
+    ['Produk Terjual',fmtInt(h.terjual)],['Konversi',fmtInt(h.konversi)],['Pesanan',fmtInt(h.pesanan)],['Dilihat',short(h.dilihat||0)],['Jumlah Klik',short(h.klik||0)],
+    ['Persentase Klik',R.ctr==null?'-':(R.ctr*100).toFixed(2).replace('.',',')+'%',null,auto],['Jumlah Voucher',rpShort(h.voucher||0)],['Penjualan dari Voucher',rpShort(h.vsales||0)]];
+  $('#mgrid').innerHTML=cards.map(function(c){
+    var inner='<span class="ml"><span>'+c[0]+'</span><span class="q" aria-hidden="true">?</span></span><span class="mv">'+c[1]+'</span>'+(c[4]?'<span class="ma">'+c[4]+'</span>':'');
+    return c[2]?'<button type="button" class="mcard s-'+c[2]+(ser[c[2]]?' on':'')+'" data-ser="'+c[2]+'" aria-pressed="'+(ser[c[2]]?'true':'false')+'">'+inner+'</button>':'<div class="mcard">'+inner+'</div>';
+  }).join('');
+}
+function weekBars(W,R){
+  var h=S.sh, rows=[['Penjualan',h.penjualan||0,'var(--shop)']];
+  if(R.ok) rows.push(['Laba kotor',R.gross,'var(--good)']);
+  rows.push(['Biaya iklan',h.biaya||0,'var(--ads)']);
+  var mx=Math.max.apply(null,rows.map(function(r){return r[1];}).concat([1])), lw=Math.min(128,Math.round(W*0.34)), vw=72, bw=W-lw-vw-8, rh=38, H=rows.length*rh+6;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Penjualan, laba sebelum iklan, dan biaya iklan periode ini">';
+  rows.forEach(function(r,i){var y=i*rh+4, w=Math.max(2,bw*r[1]/mx);
+    s+='<text class="lbl" x="'+(lw-8)+'" y="'+(y+19)+'" text-anchor="end">'+r[0]+'</text><rect x="'+lw+'" y="'+(y+5)+'" width="'+w.toFixed(1)+'" height="22" rx="3" fill="'+r[2]+'"/><text class="lbl" x="'+(lw+w+6)+'" y="'+(y+21)+'">'+rpShort(r[1])+'</text>';});
+  return s+'</svg>';
+}
+function renderChart(R){
+  var box=$('#dchart'), tip=$('#dtip'); tip.hidden=true;
+  var W=Math.max(300,Math.floor(box.clientWidth||600)), ser=S.dash.series;
+  $$('#chartPanel .lg').forEach(function(b){var on=ser[b.dataset.ser]; b.classList.toggle('off',!on); b.setAttribute('aria-pressed',on?'true':'false');});
+  var rows=S.daily.slice().sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:0);});
+  if(rows.length<2){box.innerHTML=weekBars(W,R); $('#chartNote').textContent='Grafik garis harian muncul setelah Anda mengisi catatan harian minimal 2 hari. Sementara ini yang tampil adalah total periode.'; return;}
+  $('#chartNote').textContent='';
+  var H=230, pl=46, pr=12, pt=12, pb=28, pw=W-pl-pr, ph=H-pt-pb, mx=0;
+  rows.forEach(function(r){if(ser.ads) mx=Math.max(mx,r.ads||0); if(ser.sales) mx=Math.max(mx,r.sales||0);});
+  var top=niceMax(mx||1);
+  function X(i){return pl+i*pw/(rows.length-1);} function Y(v){return pt+ph-(v/top)*ph;}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Grafik biaya iklan dan penjualan harian" style="touch-action:pan-y">';
+  for(var t=0;t<=4;t++){var v=top*t/4; s+='<line class="gridl" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="ax" x="'+(pl-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+short(v)+'</text>';}
+  var step=Math.max(1,Math.ceil(rows.length/6));
+  rows.forEach(function(r,i){if(i%step===0||i===rows.length-1) s+='<text class="ax" x="'+X(i)+'" y="'+(H-8)+'" text-anchor="middle">'+ddmm(r.date)+'</text>';});
+  [['sales','var(--shop)'],['ads','var(--ads)']].forEach(function(sr){
+    if(!ser[sr[0]]) return;
+    s+='<path d="'+rows.map(function(r,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(r[sr[0]]||0).toFixed(1);}).join(' ')+'" fill="none" stroke="'+sr[1]+'" stroke-width="2.5" stroke-linejoin="round"/>';
+    var li=rows.length-1; s+='<circle cx="'+X(li)+'" cy="'+Y(rows[li][sr[0]]||0)+'" r="4" fill="'+sr[1]+'"/>';});
+  s+='<g id="hov" style="display:none"><line id="hovL" y1="'+pt+'" y2="'+(pt+ph)+'" stroke="var(--ink2)" stroke-dasharray="3 3"/><circle id="hovA" r="4.5" fill="var(--ads)"/><circle id="hovS" r="4.5" fill="var(--shop)"/></g>';
+  s+='<rect id="hit" x="'+pl+'" y="'+pt+'" width="'+pw+'" height="'+ph+'" fill="transparent"/></svg>';
+  box.innerHTML=s;
+  var svg=$('svg',box), hov=$('#hov',box), hit=$('#hit',box);
+  function move(e){
+    var rect=svg.getBoundingClientRect(), sx=(e.clientX-rect.left)*(W/rect.width), i=Math.max(0,Math.min(rows.length-1,Math.round((sx-pl)/pw*(rows.length-1)))), r=rows[i], x=X(i);
+    hov.style.display=''; $('#hovL',box).setAttribute('x1',x); $('#hovL',box).setAttribute('x2',x);
+    $('#hovA',box).setAttribute('cx',x); $('#hovA',box).setAttribute('cy',Y(r.ads||0)); $('#hovA',box).style.display=ser.ads?'':'none';
+    $('#hovS',box).setAttribute('cx',x); $('#hovS',box).setAttribute('cy',Y(r.sales||0)); $('#hovS',box).style.display=ser.sales?'':'none';
+    tip.hidden=false;
+    tip.innerHTML='<b>'+ddmm(r.date)+'</b>'+(ser.ads?'<div><span><i style="background:var(--ads)"></i>Biaya Iklan</span><strong>'+rp(r.ads||0)+'</strong></div>':'')+(ser.sales?'<div><span><i style="background:var(--shop)"></i>Penjualan</span><strong>'+rp(r.sales||0)+'</strong></div>':'');
+    tip.style.left=Math.max(0,Math.min(rect.width-tip.offsetWidth,x*rect.width/W-tip.offsetWidth/2))+'px';
+  }
+  hit.addEventListener('pointermove',move); hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',function(){hov.style.display='none'; tip.hidden=true;});
+}
+function renderVerdict(R){
+  $('#vManual').hidden=!S.manual; $('#v_commWrap').hidden=S.dash.aff!=='ya';
+  $('#vErr').textContent=R.err.join('\n'); $('#vSrc').textContent=R.m0Src||'';
+  if(!R.ok){$('#vPill').innerHTML=''; $('#vKpis').innerHTML=''; $('#vTargets').innerHTML=''; $('#vAlerts').innerHTML=''; return;}
+  var h=S.sh, A=atagHtml();
+  $('#vPill').innerHTML=statusPill(R.status);
+  var kp=[['ROAS aktual',rs(R.roasAct),'impas '+rs(R.beR),(R.beR!=null&&R.roasAct<R.beR)?'neg':'pos'],['ROAS target aman',rs(R.tgtR),'untuk margin '+pct(R.m,0),''],['Laba bersih (perkiraan)',rp(R.net),'margin '+pct(R.netMargin),R.net<0?'neg':'pos'],['Biaya iklan maksimal',rp(R.maxBE),'agar impas pada penjualan ini','']];
+  $('#vKpis').innerHTML=kp.map(function(k){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+k[3]+'">'+k[1]+'</b><small>'+k[2]+'</small></div>';}).join('');
+  var t=[['Margin sebelum iklan'+A,pct(R.m0adj)+(R.aff?' (setelah komisi affiliate)':'')],['Target margin bersih'+A,pct(R.m,0)],['Efektivitas Iklan (ROAS)'+A,rs(R.roasAct)],['ROAS impas',rs(R.beR)],['ROAS target aman',rs(R.tgtR)],['ACOS impas',R.beR?pct(1/R.beR):'tidak ada'],
+    ['Biaya iklan maksimal untuk target margin',rp(R.maxT)],['Biaya per klik',R.cpc==null?'-':rp(R.cpc)],['Biaya per pesanan',R.cpo==null?'-':rp(R.cpo)],['Nilai pesanan rata-rata',R.aov==null?'-':rp(R.aov)],
+    ['Laba per pesanan sebelum iklan',R.ppo==null?'-':rp(R.ppo)],['Konversi aktual (pesanan dibagi klik)',R.conv==null?'-':pct(R.conv,2)],['Konversi impas',R.convBE==null?'-':pct(R.convBE,2)],['Konversi untuk target margin',R.convT==null?'-':pct(R.convT,2)]];
+  $('#vTargets').innerHTML=kvHtml(t);
+  var al=[];
+  if(R.status==='rugi') al.push({lv:'bad',t:'Iklan merugi',m:'ROAS '+rs(R.roasAct)+' di bawah impas '+rs(R.beR)+'. Perkiraan rugi '+rp(-R.net)+' pada periode ini. Agar impas dengan penjualan yang sama, biaya iklan maksimal '+rp(R.maxBE)+' (turun '+pct(Math.max(0,1-R.maxBE/R.biaya),0)+').'});
+  else if(R.status==='tipis') al.push({lv:'warn',t:'Untung tipis',m:'Sudah di atas impas, tetapi margin bersih '+pct(R.netMargin)+' di bawah target '+pct(R.m,0)+'. Targetkan ROAS minimal '+rs(R.tgtR)+'.'});
+  else al.push({lv:'good',t:'Aman',m:'ROAS '+rs(R.roasAct)+' sudah di atas target aman '+rs(R.tgtR)+'. Tetap pantau tiap minggu.'});
+  if(R.conv!=null&&R.convBE!=null&&R.conv<R.convBE) al.push({lv:'warn',t:'Konversi di bawah impas',m:'Konversi '+pct(R.conv,2)+' lebih rendah dari konversi impas '+pct(R.convBE,2)+'. Biaya per klik '+rp(R.cpc)+' terlalu mahal dibanding laba per pesanan '+rp(R.ppo)+'. Perbaiki foto, judul, harga, dan voucher, atau turunkan tawaran per klik.'});
+  if(h.vsales>0&&R.jual>0) al.push({lv:'info',t:'Penjualan lewat voucher',m:pct(h.vsales/R.jual,0)+' dari penjualan iklan memakai voucher (Rp'+short(h.vsales)+'). Jika voucher ditanggung toko dan belum dikurangi dari Penjualan, ubah pilihan "Voucher toko dikurangkan dari laba" menjadi Ya.'});
+  var okL=[],badL=[]; S.perf.forEach(function(x){var i=perfInfo(x,R); if(!i.p) return; if(i.verdict==='good') okL.push(i.p.name); else if(i.verdict==='bad') badL.push(i.p.name);});
+  if(okL.length) al.push({lv:'good',t:'Kandidat iklan',m:okL.join(', ')+': konversi di atas konversi impas.'});
+  if(badL.length) al.push({lv:'warn',t:'Jangan diiklankan dulu',m:badL.join(', ')+': konversi di bawah konversi impas atau rugi sebelum iklan.'});
+  $('#vAlerts').innerHTML=alertHtml(al);
+}
+function renderDaily(){
+  var rows=S.daily.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  $('#dlBody').innerHTML=rows.length?rows.map(function(r){return '<tr data-date="'+r.date+'"><td>'+ddmm(r.date)+'</td><td>'+rp(r.ads||0)+'</td><td>'+rp(r.sales||0)+'</td><td>'+(r.orders==null?'-':r.orders)+'</td><td><button class="btn small danger" type="button" data-dldel>Hapus</button></td></tr>';}).join(''):'<tr><td colspan="5" style="color:var(--ink2)">Belum ada catatan harian.</td></tr>';
+}
+function linkOpts(sel){return '<option value="">Belum terhubung</option>'+S.products.map(function(p){return '<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');}
+function autoHtml(info){return '<div class="alert '+info.verdict+'"><strong>'+({good:'Layak',bad:'Hati-hati',warn:'Perhatian',info:'Info'}[info.verdict])+'.</strong><div>'+esc(info.msg)+'</div></div>'+(info.chips.length?'<div class="chips">'+info.chips.map(function(c){return '<span class="chip">'+esc(c)+'</span>';}).join('')+'</div>':'');}
+function perfItemHtml(x,i,R){
+  var info=perfInfo(x,R), ed=S.dash.edit===x.id;
+  var rk=i<3?'<span class="rk r'+(i+1)+'">TOP<br>'+(i+1)+'</span>':'<span class="rk">'+(i+1)+'</span>';
+  var ini=(x.name||'?').replace(/^dien\s+/i,'').charAt(0).toUpperCase();
+  var head='<div class="prow"><div class="pthumb">'+rk+esc(ini)+'</div>'+(ed?'<label style="flex:1">Nama produk<input data-f="name" type="text" value="'+esc(x.name)+'"></label>':'<p class="pname">'+esc(x.name)+'</p>')+'</div>';
+  var body=ed?'<div class="form-grid"><label style="grid-column:1/-1">Produk Dien<select data-f="link">'+linkOpts(x.link)+'</select></label><label>Penjualan (Rp)<input data-f="sales" type="number" min="0" value="'+(x.sales==null?'':x.sales)+'"></label><label>Persentase klik (%)<input data-f="ctr" type="number" min="0" step="0.01" value="'+(x.ctr==null?'':x.ctr)+'"></label><label>Tingkat konversi (%)<input data-f="conv" type="number" min="0" step="0.01" value="'+(x.conv==null?'':x.conv)+'"></label></div>'
+    :'<div class="stat3"><div><small>Penjualan(Rp)</small><b>'+sales2(x.sales)+'</b></div><div><small>Persentase Klik</small><b>'+(x.ctr==null?'-':fz(x.ctr)+'%')+'</b></div><div><small>Tingkat Konversi</small><b>'+(x.conv==null?'-':fz(x.conv)+'%')+'</b></div></div>';
+  return '<div class="pitem" data-id="'+x.id+'">'+head+body+'<div class="pauto">'+autoHtml(info)+'</div><div class="row"><button class="btn small" type="button" data-pedit>'+(ed?'Selesai':'Ubah')+'</button><button class="btn small danger" type="button" data-pdel>Hapus</button></div></div>';
+}
+function renderPerf(R){
+  var box=$('#pList'); if(busy(box)) return;
+  var key=S.dash.sort, arr=S.perf.slice().sort(function(a,b){return (b[key]==null?-1:b[key])-(a[key]==null?-1:a[key]);});
+  box.innerHTML=arr.length?arr.map(function(x,i){return perfItemHtml(x,i,R);}).join(''):'<p class="muted">Belum ada produk. Tambahkan di bawah.</p>';
+  $$('#psort button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.sort===key?'true':'false');});
+}
+function renderAds(){
+  var box=$('#adList'); $('#adCount').textContent=S.ads.length+' kampanye';
+  box.innerHTML=S.ads.length?S.ads.map(function(a){
+    return '<div class="adcard" data-id="'+a.id+'"><div class="top2"><b>'+esc(a.name)+'</b>'+statusPill(a.status||'tipis')+'</div><div class="muted">'+esc(a.mp)+' · '+esc(a.type)+(a.aff?' · affiliate '+a.comm+'%':'')+'</div><div class="stat3"><div><small>Biaya Iklan</small><b>'+rpShort(a.ads||0)+'</b></div><div><small>Penjualan</small><b>'+rpShort(a.gmv||0)+'</b></div><div><small>ROAS</small><b>'+rs(a.roas)+'</b></div></div><div class="top2"><span class="muted">Impas '+rs(a.be)+' · laba bersih <b class="'+(a.profit<0?'neg':'pos')+'">'+rp(a.profit||0)+'</b></span><button class="btn small danger" type="button" data-adel>Hapus</button></div></div>';
+  }).join(''):'<p class="muted" style="margin:0">Belum ada iklan tersimpan. Klik Buat Iklan Produk, isi budget, lalu Simpan ke Daftar Iklan.</p>';
+}
+function renderDash(){
+  var R=dashCalc(), sub=S.dash.sub;
+  $('#manualSw').checked=!!S.manual; $('#manualSw2').checked=!!S.manual; $('#periodTxt').textContent=S.sh.period||''; $('#sampleDash').hidden=!S.sh.sample;
+  $('#dv-ringkasan').hidden=sub!=='ringkasan'; $('#dv-daftar').hidden=sub!=='daftar'; $('#dv-produk').hidden=sub!=='produk';
+  $$('#dsub button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.sub===sub?'true':'false');});
+  renderGrid(R); if(sub==='ringkasan'){renderChart(R); renderVerdict(R); renderDaily();} if(sub==='daftar') renderAds(); if(sub==='produk') renderPerf(R);
+  renderSummary();
+}
+function setDashForms(){
+  var h=S.sh; $$('#shForm [data-sh]').forEach(function(el){var v=h[el.dataset.sh]; el.value=v==null?'':v;});
+  $('#v_aff').value=S.dash.aff; $('#v_comm').value=S.dash.comm==null?'':S.dash.comm; $('#v_vcost').value=S.dash.vcost;
+  var dm=S.dm||{}; $('#vm_m0').value=dm.m0==null?'':dm.m0; $('#vm_m').value=dm.m==null?'':dm.m; $('#vm_roas').value=dm.roas==null?'':dm.roas; $('#vm_ctr').value=dm.ctr==null?'':dm.ctr;
+  $('#pf_period').value=S.perfPeriod; $('#pf_link').innerHTML=linkOpts('');
+  if(!$('#d_date').value){var j=jak(); $('#d_date').value=j.y+'-'+pad(j.m)+'-'+pad(j.d);}
+}
+function setManual(on){
+  if(on&&!S.manual){
+    var Ra=dashCalc(true);
+    S.dm={m0:Ra.m0Auto!=null?round1(Ra.m0Auto*100):null,m:round1(Ra.mAuto*100),roas:Ra.roasAuto!=null?round2(Ra.roasAuto):null,ctr:Ra.ctrAuto!=null?round2(Ra.ctrAuto*100):null};
+    renderCalc(); var A=getAC(), au=calcAutoVals(A); if(au){au.roas=calcLast?calcLast.roas:null; A.mv=au;}
+  }
+  S.manual=!!on; save(); setDashForms(); if(S.manual) fillManual(getAC().mv); renderDash(); renderCalc();
+}
+
+/* ---------- Kalkulator iklan produk: otomatis, manual bila Mode manual aktif ---------- */
+var AUTO_IDS=['price','disc','cost','fee','other','ret','minM','org','roas'], calcLast=null;
+function fillManual(mv){if(!mv) return; AUTO_IDS.forEach(function(k){$('#c_'+k).value=mv[k]==null?'':mv[k];});}
+function acDefault(){return {v:2,pid:defaultPid(),type:'Iklan Produk',aff:'tidak',comm:null,ads:500000,mv:null};}
+function getAC(){var A=S.adcalc; if(!A||A.v!==2){A=S.adcalc=acDefault();} if(!getP(A.pid)) A.pid=defaultPid(); return A;}
+function calcAutoVals(A){
+  var p=getP(A.pid), st=S.settings; if(!p) return null;
+  return {name:p.name,price:p.price,disc:st.disc,cost:Math.round(p.cost!=null?p.cost:p.list*(1-st.costCut/100)),fee:st.fee,other:st.other,ret:st.ret,minM:st.minM,org:0};
+}
+function syncCalcStatic(){var A=getAC(); $('#c_type').value=A.type; $('#c_aff').value=A.aff; $('#c_comm').value=A.comm==null?'':A.comm; $('#c_ads').value=A.ads==null?'':A.ads;}
+function renderCalc(){
+  var sel=$('#c_load'), key=S.products.map(function(p){return p.id;}).join(',');
+  if(sel.dataset.key!==key){sel.innerHTML=S.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' ('+esc(p.cat)+')</option>';}).join(''); sel.dataset.key=key;}
+  var A=getAC(), man=!!S.manual, aff=A.aff==='ya', res=$('#c_res'), au=calcAutoVals(A); calcLast=null;
+  sel.value=A.pid||''; $('#manualSw2').checked=man; $('#c_commWrap').hidden=!aff;
+  if(!au){$('#c_err').textContent='Belum ada produk. Tambahkan produk di tab Produk.'; res.innerHTML=''; return;}
+  if(man&&!A.mv) A.mv=Object.assign({roas:null},au);
+  var E=man?A.mv:au;
+  AUTO_IDS.forEach(function(k){$('#c_'+k).disabled=!man;});
+  $$('#c_form .atag').forEach(function(t){t.textContent=man?'manual':'otomatis'; t.className='atag '+(man?'man':'auto');});
+  if(!man) ['price','disc','cost','fee','other','ret','minM','org'].forEach(function(k){$('#c_'+k).value=E[k];});
+  function g(k){return E[k]==null?0:E[k];}
+  var errs=[];
+  if(E.price==null||E.price<=0) errs.push('Isi harga jual lebih dari 0.');
+  if(E.cost==null||E.cost<0) errs.push('Isi modal per unit (boleh 0, tapi tidak boleh kosong).');
+  var commBad=aff&&!(A.comm>0);
+  if(commBad) errs.push('Komisi affiliate wajib diisi (%) karena Anda memilih memakai affiliate. Pilih "Tidak" jika tidak memakai affiliate.');
+  [['disc','Diskon'],['fee','Fee platform'],['ret','Retur'],['minM','Margin yang diinginkan'],['org','Pesanan organik']].forEach(function(p){if(E[p[0]]!=null&&(E[p[0]]<0||E[p[0]]>100)) errs.push(p[1]+' harus antara 0 dan 100%.');});
+  if(A.comm!=null&&A.comm>100) errs.push('Komisi affiliate maksimal 100%.');
+  $('#c_comm').setAttribute('aria-invalid',commBad?'true':'false'); $('#c_err').textContent=errs.join('\n');
+  if(errs.length){res.innerHTML='<div class="panel"><p class="muted" style="margin:0">Perbaiki isian di atas, lalu hasil perhitungan muncul di sini.</p></div>'; return;}
+  var m=g('minM')/100, price=E.price*(1-g('disc')/100), retA=price*g('ret')/100, feeA=(price-retA)*g('fee')/100, commA=aff?price*A.comm/100:0;
+  var profit=price-retA-feeA-E.cost-g('other')-commA, pm=profit/price, beR=profit>0?price/profit:null, tgtR=pm>m?1/(pm-m):null;
+  var roas=man?E.roas:(tgtR?Math.ceil(tgtR*100)/100:(beR?Math.ceil(beR*100)/100:null));
+  if(!man) $('#c_roas').value=roas==null?'':roas;
+  var hasB=A.ads!=null&&A.ads>=0&&roas!=null&&roas>0, out='', net=0, gmv=0, orders=0, nm=0, st='sehat', org=g('org')/100;
+  if(hasB){gmv=A.ads*roas; orders=gmv/price; net=orders*profit-A.ads; nm=gmv>0?net/gmv:0; st=net<0?'rugi':(nm<m-1e-9?'tipis':'sehat');}
+  var kp=hasB?[['Laba bersih',rp(net),'setelah budget iklan '+rp(A.ads)],['Margin bersih',pct(nm),'target '+pct(m,0)]]:[['Laba per pesanan',rp(profit),'sebelum iklan'],['Margin sebelum iklan',pct(pm),'sesudah fee, retur, modal, komisi']];
+  kp.push(['ROAS impas',rs(beR),beR?'ACOS impas '+pct(1/beR):'tidak bisa diiklankan'],['ROAS target aman',rs(tgtR),'agar margin bersih '+pct(m,0)]);
+  var kc=[(hasB?net:profit)<0?'neg':'pos',(hasB?nm:pm)<m?((hasB?nm:pm)<0?'neg':''):'pos','',''];
+  out+='<div class="kpis">'+kp.map(function(k,i){return '<div class="kpi"><span>'+k[0]+'</span><b class="'+kc[i]+'">'+k[1]+'</b><small>'+k[2]+'</small></div>';}).join('')+'</div>';
+  var rows=[['Harga setelah diskon',price,''],['Retur dan batal',-retA,'r'],['Fee platform',-feeA,'r'],['Modal barang',-E.cost,'r'],['Biaya lain per pesanan',-g('other'),'r']];
+  if(aff) rows.push(['Komisi affiliate ('+A.comm+'%)',-commA,'r']);
+  rows.push(['Laba per pesanan sebelum iklan',profit,profit<0?'r':'g','total']);
+  if(hasB){rows.push(['Biaya iklan per pesanan (harga / ROAS)',-price/roas,'r']); rows.push(['Laba bersih per pesanan',profit-price/roas,(profit-price/roas)<0?'r':'g','total']);}
+  var wf=rows.map(function(r){var w=price>0?clamp(Math.abs(r[1])/price*100,0,100):0; return '<tr class="'+(r[3]||'')+'"><td>'+r[0]+'</td><td><div class="bar '+r[2]+'" style="width:'+w.toFixed(1)+'%"></div></td><td>'+rp(r[1])+'</td></tr>';}).join('');
+  var cmax=Math.max(0,(profit+commA)/price-(hasB?1/roas:0)-m)*100;
+  var tg=[['ROAS impas (rugi di bawahnya)',rs(beR)],['ROAS target aman (margin '+pct(m,0)+')',rs(tgtR)],['ACOS impas',beR?pct(1/beR):'tidak ada'],['Biaya iklan maks per pesanan (impas)',rp(Math.max(0,profit))],['Biaya iklan maks per pesanan (target margin)',profit-price*m>0?rp(profit-price*m):'tidak ada ruang']];
+  if(aff) tg.push(['Komisi affiliate maks, margin tetap '+pct(m,0),hasB?(cmax>0?pct(cmax/100,1):'tidak ada ruang'):'isi budget dan ROAS']);
+  if(hasB&&profit>0) tg.push(['Pesanan minimal agar budget iklan balik modal',Math.ceil(A.ads/profit).toLocaleString('id-ID')+' pesanan']);
+  out+='<div class="grid2"><div class="panel"><h3>Perhitungan per pesanan</h3><table class="wf">'+wf+'</table></div><div class="panel"><h3>Target agar tidak boncos</h3><dl class="kv">'+kvHtml(tg)+'</dl></div></div>';
+  if(hasB){
+    var inc=orders*(1-org)*profit-A.ads;
+    var br=[['Jenis iklan',esc(A.type)+' &middot; '+esc(E.name||'')],['Budget iklan',rp(A.ads)],['ROAS yang dipakai'+(man?'':' (target aman otomatis)'),rs(roas)],['GMV dari iklan',rp(gmv)],['Jumlah pesanan',(Math.round(orders*10)/10).toLocaleString('id-ID')],['Laba sebelum iklan',rp(orders*profit)],['Biaya iklan',rp(-A.ads)],['Laba bersih',rp(net)],['Margin bersih',pct(nm)],['Status',statusPill(st)]];
+    if(org>0) br.push(['Laba tambahan jika '+pct(org,0)+' pesanan tetap terjadi tanpa iklan',rp(inc)]);
+    out+='<div class="panel"><h3>'+(man?'Hasil dengan budget dan ROAS Anda':'Rencana jika ROAS target tercapai')+'</h3><dl class="kv">'+kvHtml(br)+'</dl></div>';
+  }
+  var al=[];
+  if(profit<=0) al.push({lv:'bad',t:'Rugi sebelum iklan',m:'Tiap pesanan rugi '+rp(-profit)+' bahkan tanpa iklan. Naikkan harga, kurangi diskon atau komisi, atau turunkan modal.'});
+  else{
+    if(hasB&&roas<beR) al.push({lv:'bad',t:'ROAS di bawah impas',m:'ROAS '+rs(roas)+' lebih rendah dari impas '+rs(beR)+'. Iklan ini rugi '+rp(-net)+'. Naikkan ROAS target minimal ke '+rs(beR)+'.'});
+    else if(hasB&&tgtR&&roas<tgtR) al.push({lv:'warn',t:'Untung tipis',m:'Margin bersih '+pct(nm)+' belum mencapai target '+pct(m,0)+'. Naikkan ROAS target ke '+rs(tgtR)+' atau lebih.'});
+    else if(hasB&&!tgtR) al.push({lv:'warn',t:'Target margin mustahil',m:'Margin sebelum iklan '+pct(pm)+' sudah di bawah target '+pct(m,0)+'. Berapa pun ROAS-nya, target tidak tercapai. Perbaiki harga atau modal dulu.'});
+    else if(hasB&&man) al.push({lv:'good',t:'Aman',m:'ROAS '+rs(roas)+' sudah di atas target aman '+rs(tgtR)+'.'});
+    if(!man) al.push({lv:'info',t:'ROAS target otomatis',m:'Pasang target ROAS '+rs(roas)+' di pengaturan iklan Shopee. Jika ROAS asli di dashboard di bawah '+rs(beR)+', iklan rugi.'});
+    if(aff&&hasB&&A.comm>cmax+0.05) al.push({lv:'warn',t:'Komisi affiliate terlalu besar',m:'Komisi '+A.comm+'% melewati batas aman '+pct(cmax/100,1)+' untuk ROAS dan margin ini. Turunkan komisi atau naikkan ROAS.'});
+    if(hasB&&org>0&&orders*(1-org)*profit-A.ads<0) al.push({lv:'warn',t:'Laba tambahan negatif',m:'Jika '+pct(org,0)+' pesanan tetap terjadi tanpa iklan, iklan ini menambah rugi. Uji dengan menjeda iklan beberapa hari.'});
+    if(aff&&A.type==='GMV Max') al.push({lv:'info',t:'GMV Max dan affiliate',m:'Pesanan affiliate dan organik dari produk yang diiklankan ikut dihitung ke kampanye, jadi ROAS dashboard bisa terlihat lebih tinggi dari tambahan penjualan sebenarnya.'});
+  }
+  if(g('fee')<=0) al.push({lv:'warn',t:'Fee platform 0%',m:'Hampir semua marketplace memungut komisi dan biaya transaksi. Isi sesuai Seller Center.'});
+  if(al.length) out+='<div class="panel"><h3>Peringatan dan saran</h3><div class="alerts">'+alertHtml(al)+'</div></div>';
+  if(hasB){
+    var set={}, labels={}; [1,2,3,4,5,6,8,10,15].forEach(function(r){set[r]=1;});
+    function addR(v,l){if(v==null||!isFinite(v)||v>40) return; var k=Math.round(v*100)/100; set[k]=1; labels[k]=(labels[k]?labels[k]+', ':'')+l;}
+    addR(beR&&Math.ceil(beR*100)/100,'impas'); addR(tgtR&&Math.ceil(tgtR*100)/100,'target aman'); addR(roas,'ROAS dipakai');
+    var tb=Object.keys(set).map(Number).sort(function(a,b){return a-b;}).map(function(R){
+      var gm=A.ads*R, od=gm/price, nt=od*profit-A.ads, mg=gm>0?nt/gm:0, s=nt<-0.5?'rugi':(mg<m-1e-9?'tipis':'sehat'), lb=labels[Math.round(R*100)/100];
+      return '<tr class="'+(lb&&lb.indexOf('ROAS dipakai')>=0?'cur':'')+'"><td>'+rs(R)+(lb?'<span class="tag">'+lb+'</span>':'')+'</td><td>'+rp(gm)+'</td><td>'+(Math.round(od*10)/10).toLocaleString('id-ID')+'</td><td class="'+(nt<0?'neg':'')+'">'+rp(nt)+'</td><td>'+pct(mg)+'</td><td style="text-align:center">'+statusPill(s)+'</td></tr>';}).join('');
+    out+='<div class="panel"><h3>Laba bersih di berbagai nilai ROAS</h3><p class="muted" style="margin:0 0 8px">Dengan budget iklan '+rp(A.ads)+'.</p><div class="tablewrap" style="max-height:none"><table class="prod sim" style="min-width:640px"><thead><tr><th>ROAS</th><th>GMV iklan</th><th>Pesanan</th><th>Laba bersih</th><th>Margin bersih</th><th style="text-align:center">Status</th></tr></thead><tbody>'+tb+'</tbody></table></div></div>';
+    calcLast={name:E.name||(getP(A.pid)||{}).name||'Produk',type:A.type,ads:A.ads,gmv:gmv,roas:roas,beR:beR,org:g('org'),aff:aff,comm:aff?A.comm:0,net:net,status:st};
+  }
+  res.innerHTML=out;
+}
+
+/* ---------- Pemasangan event ---------- */
+$('#manualSw').addEventListener('change',function(e){setManual(e.target.checked);});
+$('#manualSw2').addEventListener('change',function(e){setManual(e.target.checked);});
+$('#ctaBuat').addEventListener('click',function(){setTab('hitung');});
+$('#dsub').addEventListener('click',function(e){var b=e.target.closest('[data-sub]'); if(!b) return; S.dash.sub=b.dataset.sub; save(); renderDash();});
+$('#psort').addEventListener('click',function(e){var b=e.target.closest('[data-sort]'); if(!b) return; S.dash.sort=b.dataset.sort; save(); renderDash();});
+function toggleSer(e){var b=e.target.closest('[data-ser]'); if(!b) return; var k=b.dataset.ser; S.dash.series[k]=!S.dash.series[k]; if(!S.dash.series.ads&&!S.dash.series.sales) S.dash.series[k]=true; save(); renderDash();}
+$('#mgrid').addEventListener('click',toggleSer); $('#chartPanel').addEventListener('click',function(e){if(e.target.closest('.lg')) toggleSer(e);});
+$('#shForm').addEventListener('input',function(e){var k=e.target.dataset.sh; if(!k) return; S.sh[k]=k==='period'?e.target.value:(parseFloat(e.target.value)||0); S.sh.sample=false; save(); renderDash();});
+$('#v_aff').addEventListener('input',function(e){S.dash.aff=e.target.value; save(); renderDash();});
+$('#v_comm').addEventListener('input',function(e){var n=parseFloat(e.target.value); S.dash.comm=isFinite(n)?n:null; save(); renderDash();});
+$('#v_vcost').addEventListener('input',function(e){S.dash.vcost=e.target.value; save(); renderDash();});
+$('#vManual').addEventListener('input',function(e){var k={vm_m0:'m0',vm_m:'m',vm_roas:'roas',vm_ctr:'ctr'}[e.target.id]; if(!k) return; var n=parseFloat(e.target.value); S.dm[k]=isFinite(n)?n:null; save(); renderDash();});
+$('#d_add').addEventListener('click',function(){
+  var d=$('#d_date').value, a=parseFloat($('#d_ads').value), s=parseFloat($('#d_sales').value), o=parseInt($('#d_ord').value,10), m=$('#d_msg'); m.className='msg err';
+  if(!d){m.textContent='Pilih tanggal.'; return;} if(!(a>=0)||!(s>=0)){m.textContent='Isi biaya iklan dan penjualan (0 atau lebih).'; return;}
+  S.daily=S.daily.filter(function(r){return r.date!==d;}); S.daily.push({date:d,ads:a,sales:s,orders:isFinite(o)?o:null}); save();
+  m.className='msg ok'; m.textContent='Catatan '+ddmm(d)+' disimpan.'; ['d_ads','d_sales','d_ord'].forEach(function(id){$('#'+id).value='';}); renderDash();
+});
+$('#dlBody').addEventListener('click',function(e){var b=e.target.closest('[data-dldel]'); if(!b) return; var d=b.closest('tr').dataset.date; S.daily=S.daily.filter(function(r){return r.date!==d;}); save(); renderDash();});
+$('#d_sum').addEventListener('click',function(){
+  var m=$('#d_msg'); if(!S.daily.length){m.className='msg err'; m.textContent='Belum ada catatan harian.'; return;}
+  var a=0,s=0,o=0; S.daily.forEach(function(r){a+=r.ads||0; s+=r.sales||0; o+=r.orders||0;});
+  S.sh.biaya=a; S.sh.penjualan=s; if(o>0) S.sh.pesanan=o; S.sh.sample=false; S.sh.period=S.daily.length+' hari dari catatan harian'; save(); setDashForms(); renderDash(); m.className='msg ok'; m.textContent='Data Ringkasan diperbarui dari catatan harian.';
+});
+$('#pf_period').addEventListener('input',function(e){S.perfPeriod=e.target.value; save();});
+$('#pList').addEventListener('click',function(e){
+  var it=e.target.closest('.pitem'); if(!it) return; var id=it.dataset.id;
+  if(e.target.closest('[data-pedit]')){S.dash.edit=S.dash.edit===id?null:id; save(); renderDash(); return;}
+  var d=e.target.closest('[data-pdel]'); if(d) twoStep(d,'pf'+id,'Yakin?',function(){S.perf=S.perf.filter(function(x){return x.id!==id;}); save(); renderDash();});
+});
+$('#pList').addEventListener('input',function(e){
+  var f=e.target.dataset.f; if(!f) return; var it=e.target.closest('.pitem'), x=S.perf.filter(function(y){return y.id===it.dataset.id;})[0]; if(!x) return;
+  if(f==='name'||f==='link') x[f]=e.target.value; else {var n=parseFloat(e.target.value); x[f]=isFinite(n)?n:null;}
+  save(); $('.pauto',it).innerHTML=autoHtml(perfInfo(x,dashCalc()));
+});
+$('#pf_add').addEventListener('click',function(){
+  var nm=$('#pf_name').value.trim(), m=$('#pf_msg'); m.className='msg err'; if(!nm){m.textContent='Isi nama produk.'; $('#pf_name').focus(); return;}
+  function nv(id){var n=parseFloat($('#'+id).value); return isFinite(n)?n:null;}
+  S.perf.push({id:'q'+Date.now().toString(36),name:nm,link:$('#pf_link').value,sales:nv('pf_sales'),ctr:nv('pf_ctr'),conv:nv('pf_conv')}); save();
+  ['pf_name','pf_sales','pf_ctr','pf_conv'].forEach(function(id){$('#'+id).value='';}); $('#pf_link').value=''; m.className='msg ok'; m.textContent='Produk ditambahkan.'; renderDash();
+});
+$('#adList').addEventListener('click',function(e){
+  var b=e.target.closest('[data-adel]'); if(!b) return; var id=b.closest('.adcard').dataset.id;
+  twoStep(b,'ad'+id,'Yakin?',function(){S.ads=S.ads.filter(function(a){return a.id!==id;}); save(); renderAds(); renderAdList();});
+});
+$('#c_form').addEventListener('input',function(e){
+  var A=getAC(), id=e.target.id, v=e.target.value.trim(), n=v===''?null:parseFloat(v); if(n!=null&&!isFinite(n)) n=null;
+  if(id==='c_comm') A.comm=n; else if(id==='c_ads') A.ads=n; else if(id==='c_type') A.type=e.target.value; else if(id==='c_aff') A.aff=e.target.value;
+  else if(id==='c_load'){A.pid=e.target.value; if(S.manual&&A.mv){var au=calcAutoVals(A); A.mv.price=au.price; A.mv.cost=au.cost; A.mv.name=au.name; fillManual(A.mv);}}
+  else if(S.manual&&A.mv&&/^c_/.test(id)) A.mv[id.slice(2)]=n;
+  save(); renderCalc();
+});
+$('#c_save').addEventListener('click',function(){
+  var L=calcLast, m=$('#c_saveMsg');
+  if(!L){m.className='msg err'; m.textContent='Isi budget iklan dan perbaiki isian yang merah dulu.'; return;}
+  S.ads.unshift({id:'a'+Date.now().toString(36),name:L.name,mp:'Shopee',type:L.type,ads:L.ads,gmv:L.gmv,aff:L.aff,comm:L.comm,roas:L.roas,be:L.beR,incR:L.roas*(1-L.org/100),profit:L.net,status:L.status});
+  save(); renderAdList(); renderDash(); m.className='msg ok'; m.textContent='Disimpan. Lihat di Dasbor Iklan, tab Daftar Iklan.';
+});
+$('#bk_copy').addEventListener('click',function(){
+  var t=JSON.stringify(S), box=$('#bk_box'), m=$('#bk_msg'); box.value=t; box.select(); m.className='msg ok'; m.textContent='Cadangan ada di kotak. Salin dan simpan di tempat aman.';
+  try{navigator.clipboard.writeText(t).then(function(){m.textContent='Cadangan disalin ke clipboard.';},function(){});}catch(x){}
+});
+$('#bk_restore').addEventListener('click',function(){
+  var m=$('#bk_msg'); m.className='msg err';
+  try{var o=JSON.parse($('#bk_box').value); if(!o||!Array.isArray(o.products)) throw new Error('x');
+    S=o; ensureState(); save(); fillCatControls(); renderSettings(); renderTable(); setDashForms(); syncCalcStatic(); renderDash(); renderCalc(); renderAdList(); renderRemList(); renderBanner();
+    m.className='msg ok'; m.textContent='Data dipulihkan.';
+  }catch(x){m.textContent='Teks cadangan tidak valid. Tempel seluruh teks yang disalin dari tombol Salin cadangan.';}
+});
+var rzD; window.addEventListener('resize',function(){clearTimeout(rzD); rzD=setTimeout(function(){if(curTab==='dasbor'&&S.dash.sub==='ringkasan') renderChart(dashCalc());},150);});
+
+function renderSettings(){
+  var st=S.settings;
+  $('#s_costCut').value=st.costCut; $('#s_fee').value=st.fee; $('#s_other').value=st.other;
+  $('#s_disc').value=st.disc; $('#s_ret').value=st.ret; $('#s_ads').value=st.ads; $('#s_minM').value=st.minM;
+}
+var LIM={costCut:[0,95],fee:[0,50],other:[0,1e7],disc:[0,90],ret:[0,50],ads:[0,1e10],minM:[0,60]};
+$('#settings').addEventListener('input',function(e){
+  var id=e.target.id; if(!/^s_/.test(id)) return;
+  var k=id.slice(2), v=num(e.target.value,0);
+  S.settings[k]=clamp(v,LIM[k][0],LIM[k][1]);
+  save(); updateAllRows(); renderSummary(); if(curTab==='grafik') renderCharts();
+});
+
+/* ---------- Products table ---------- */
+function cats(){var m={};S.products.forEach(function(p){m[p.cat]=1;});return Object.keys(m);}
+function fillCatControls(){
+  var c=cats();
+  [['#fCat','Semua kategori'],['#chCat','Semua kategori']].forEach(function(x){
+    var sel=$(x[0]), cur=sel.value||'all';
+    sel.innerHTML='<option value="all">'+x[1]+'</option>'+c.map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+'</option>';}).join('');
+    sel.value=c.indexOf(cur)>=0?cur:'all';
+  });
+  $('#catList').innerHTML=c.map(function(k){return '<option value="'+esc(k)+'">';}).join('');
+}
+function rowHtml(p){
+  return '<tr data-id="'+p.id+'"><td class="name"><button type="button" class="link" data-open title="Lihat rincian produk ini">'+esc(p.name)+'</button><small>'+esc(p.cat)+(p.src==='manual'?' &middot; manual':'')+'</small></td>'+
+  '<td><input class="num" type="number" min="0" step="500" inputmode="numeric" data-f="price" value="'+p.price+'" aria-label="Harga jual '+esc(p.name)+'"></td>'+
+  '<td data-c="cost" class="r"></td>'+
+  '<td><input class="num" style="width:76px" type="number" min="0" step="1" inputmode="numeric" data-f="qty" value="'+(p.qty||0)+'" aria-label="Jumlah terjual '+esc(p.name)+'"></td>'+
+  '<td data-c="profit" class="r"></td><td data-c="margin" class="r"></td><td data-c="roas" class="r"></td><td data-c="maxd" class="r"></td>'+
+  '<td data-c="status" style="text-align:center"></td>'+
+  '<td><button class="btn small danger" type="button" data-del>Hapus</button></td></tr>';
+}
+function fillRow(tr){
+  var p=S.products.filter(function(x){return x.id===tr.dataset.id;})[0]; if(!p) return;
+  var u=unit(p), q=p.qty||0;
+  function set(c,html,cls){var td=$('[data-c="'+c+'"]',tr); td.innerHTML=html; if(cls!==undefined) td.className='r '+cls;}
+  set('cost',rp(u.cost));
+  set('profit',rp(u.profit),u.profit<0?'neg':'');
+  set('margin',pct(u.margin),u.status==='rugi'?'neg':(u.status==='tipis'?'':'pos'));
+  set('roas',u.roas?u.roas.toFixed(2).replace('.',','):'-');
+  set('maxd',u.nospace?'tidak ada':pct(u.maxd,0));
+  $('[data-c="status"]',tr).innerHTML=q>0?'<span class="pill '+u.status+'">'+({sehat:'Sehat',tipis:'Tipis',rugi:'Rugi'}[u.status])+'</span>':'<span class="pill diam">Belum dijual</span>';
+}
+function renderTable(){
+  var q=$('#q').value.trim().toLowerCase(), c=$('#fCat').value;
+  var list=S.products.filter(function(p){return (c==='all'||p.cat===c)&&(!q||p.name.toLowerCase().indexOf(q)>=0);});
+  $('#prodBody').innerHTML=list.length?list.map(rowHtml).join(''):'<tr><td colspan="10" style="text-align:left;color:var(--ink2);padding:16px">Tidak ada produk yang cocok. Ubah pencarian, atau tambah produk di formulir di atas.</td></tr>';
+  $$('#prodBody tr[data-id]').forEach(fillRow);
+}
+function updateAllRows(){$$('#prodBody tr[data-id]').forEach(fillRow);}
+$('#prodBody').addEventListener('input',function(e){
+  var f=e.target.dataset.f; if(!f) return;
+  var tr=e.target.closest('tr'), p=S.products.filter(function(x){return x.id===tr.dataset.id;})[0]; if(!p) return;
+  var v=Math.max(0,num(e.target.value,0)); p[f]=f==='qty'?Math.round(v):v;
+  if(f==='qty') S.sampleQty=false;
+  save(); fillRow(tr); renderSummary();
+});
+var armed={};
+function twoStep(btn,key,label,fn){
+  if(armed[key]){clearTimeout(armed[key].t); btn.textContent=armed[key].orig; delete armed[key]; fn(); return;}
+  armed[key]={orig:btn.textContent,t:setTimeout(function(){btn.textContent=armed[key].orig; delete armed[key];},3500)};
+  btn.textContent=label;
+}
+$('#prodBody').addEventListener('click',function(e){
+  var o=e.target.closest('[data-open]'); if(o){openDetail(o.closest('tr').dataset.id); return;}
+  var b=e.target.closest('[data-del]'); if(!b) return;
+  var id=b.closest('tr').dataset.id;
+  twoStep(b,'del'+id,'Yakin?',function(){
+    S.products=S.products.filter(function(p){return p.id!==id;}); save(); fillCatControls(); renderTable(); renderSummary(); if(curTab==='grafik') renderCharts();
+  });
+});
+$('#q').addEventListener('input',renderTable);
+$('#fCat').addEventListener('change',renderTable);
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]'); if(!b) return;
+  var a=b.dataset.act;
+  if(a==='closedetail'){closeDetail(); return;}
+  if(a==='clearqty'){S.products.forEach(function(p){p.qty=0;}); S.sampleQty=false; save(); renderTable(); renderSummary(); if(curTab==='grafik') renderCharts();}
+  if(a==='resetdien'){
+    twoStep(b,'reset','Yakin? Produk manual tetap ada',function(){
+      var manual=S.products.filter(function(p){return p.src==='manual';});
+      S.products=dienProducts().concat(manual); S.sampleQty=true; save(); fillCatControls(); renderTable(); renderSummary(); if(curTab==='grafik') renderCharts();
+    });
+  }
+});
+$('#addForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  var name=$('#f_name').value.trim(), cat=$('#f_cat').value.trim()||'Lainnya';
+  var price=parseFloat($('#f_price').value), costRaw=$('#f_cost').value.trim(), qty=parseInt($('#f_qty').value,10);
+  var m=$('#formMsg'); m.className='msg err';
+  if(!name){m.textContent='Isi nama produk.'; $('#f_name').focus(); return;}
+  if(!isFinite(price)||price<=0){m.textContent='Isi harga jual lebih dari 0.'; $('#f_price').focus(); return;}
+  var cost=null;
+  if(costRaw!==''){cost=parseFloat(costRaw); if(!isFinite(cost)||cost<0){m.textContent='Modal harus angka 0 atau lebih, atau kosongkan.'; $('#f_cost').focus(); return;}}
+  if(!isFinite(qty)||qty<0) qty=0;
+  S.products.unshift({id:'m'+Date.now().toString(36)+Math.floor(Math.random()*1000),src:'manual',cat:cat,name:name,list:price,price:price,cost:cost,qty:qty});
+  if(qty>0) S.sampleQty=false;
+  save(); fillCatControls(); renderTable(); renderSummary(); if(curTab==='grafik') renderCharts();
+  $('#f_name').value=''; $('#f_price').value=''; $('#f_cost').value='';
+  m.className='msg ok'; m.textContent='Produk "'+name+'" ditambahkan di baris paling atas daftar.'; $('#f_name').focus();
+});
+
+/* ---------- Charts ---------- */
+var NS='http://www.w3.org/2000/svg';
+function trunc(s,n){return s.length>n?s.slice(0,n-1)+'…':s;}
+function renderMarginChart(){
+  var box=$('#chart1'); var W=Math.max(300,Math.floor(box.clientWidth||600));
+  var list=S.products.map(function(p){return {p:p,u:unit(p)};});
+  var c=$('#chCat').value; if(c!=='all') list=list.filter(function(x){return x.p.cat===c;});
+  var asc=$('#chSort').value==='asc', n=$('#chN').value;
+  list.sort(function(a,b){return asc?a.u.margin-b.u.margin:b.u.margin-a.u.margin;});
+  if(n!=='all') list=list.slice(0,+n);
+  if(!list.length){box.innerHTML='<p class="muted">Belum ada produk untuk digambar. Tambah produk di tab Produk.</p>';return;}
+  var labelW=Math.min(190,Math.round(W*0.38)), valW=54, padL=labelW+6, padR=valW+8, top=8, rowH=24, axisH=30;
+  var H=top+list.length*rowH+axisH, plotW=W-padL-padR;
+  var vals=list.map(function(x){return x.u.margin*100;}); var minM=S.settings.minM;
+  var lo=Math.min(0,Math.floor(Math.min.apply(null,vals)/10)*10), hi=Math.max(40,Math.ceil(Math.max.apply(null,vals)/10)*10,Math.ceil(minM/10)*10);
+  var step=(hi-lo)>100?20:10;
+  function X(v){return padL+(v-lo)/(hi-lo)*plotW;}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Margin per produk">';
+  for(var t=lo;t<=hi;t+=step){ s+='<line class="gridl" x1="'+X(t)+'" x2="'+X(t)+'" y1="'+top+'" y2="'+(H-axisH)+'"/><text class="ax" x="'+X(t)+'" y="'+(H-10)+'" text-anchor="middle">'+t+'%</text>'; }
+  s+='<line class="zero" x1="'+X(0)+'" x2="'+X(0)+'" y1="'+top+'" y2="'+(H-axisH)+'"/>';
+  list.forEach(function(x,i){
+    var y=top+i*rowH, v=x.u.margin*100, x0=X(0), x1=X(Math.max(lo,Math.min(hi,v)));
+    var bx=Math.min(x0,x1), bw=Math.max(2,Math.abs(x1-x0));
+    s+='<text class="lbl" x="'+(labelW)+'" y="'+(y+rowH/2+4)+'" text-anchor="end">'+esc(trunc(x.p.name,Math.floor(labelW/6.4)))+'</text>';
+    s+='<rect class="b-'+x.u.status+'" x="'+bx+'" y="'+(y+4)+'" width="'+bw+'" height="'+(rowH-8)+'" rx="2"><title>'+esc(x.p.name)+': margin '+pct(x.u.margin)+', laba '+rp(x.u.profit)+' per unit</title></rect>';
+    s+='<text class="lbl" x="'+(W-4)+'" y="'+(y+rowH/2+4)+'" text-anchor="end" style="font-variant-numeric:tabular-nums">'+pct(x.u.margin,1)+'</text>';
+  });
+  s+='<line class="minl" x1="'+X(minM)+'" x2="'+X(minM)+'" y1="'+top+'" y2="'+(H-axisH)+'"/></svg>';
+  box.innerHTML=s;
+}
+function renderDiscountChart(){
+  var box=$('#chart2'); var W=Math.max(300,Math.floor(box.clientWidth||600)), H=270;
+  var st=S.settings, ret=st.ret/100, fee=st.fee/100, minM=st.minM;
+  var act=S.products.filter(function(p){return (p.qty||0)>0;});
+  var use=act.length?act:S.products;
+  if(!use.length){box.innerHTML='<p class="muted">Belum ada produk.</p>';return;}
+  function m(d){
+    var prof=0,rev=0;
+    use.forEach(function(p){
+      var w=act.length?(p.qty||0):1, price=p.price*(1-d), cost=(p.cost!=null)?p.cost:p.list*(1-st.costCut/100);
+      prof+=w*(price*(1-ret)*(1-fee)-cost-st.other); rev+=w*price;
+    });
+    return rev>0?prof/rev*100:0;
+  }
+  var pts=[],i; for(i=0;i<=50;i++) pts.push([i,m(i/100)]);
+  var ys=pts.map(function(p){return p[1];});
+  var lo=Math.min(-10,Math.floor(Math.min.apply(null,ys)/10)*10), hi=Math.max(10,Math.ceil(Math.max.apply(null,ys)/10)*10,Math.ceil(minM/10)*10);
+  var pl=46,pr=14,pt=34,pb=34, pw=W-pl-pr, ph=H-pt-pb;
+  function X(v){return pl+v/50*pw;} function Y(v){return pt+(hi-v)/(hi-lo)*ph;}
+  var ystep=(hi-lo)>80?20:10;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Margin gabungan terhadap diskon">';
+  for(var t=lo;t<=hi;t+=ystep){ s+='<line class="gridl" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text class="ax" x="'+(pl-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+t+'%</text>'; }
+  for(t=0;t<=50;t+=10){ s+='<text class="ax" x="'+X(t)+'" y="'+(H-12)+'" text-anchor="middle">'+t+'%</text>'; }
+  s+='<text class="ax" x="'+(pl+pw/2)+'" y="'+(H-0)+'" text-anchor="middle" dy="-0">Diskon</text>'.replace('dy="-0"','');
+  s+='<line class="zero" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(0)+'" y2="'+Y(0)+'"/>';
+  s+='<line class="minl" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(minM)+'" y2="'+Y(minM)+'"/>';
+  s+='<path class="curve" d="'+pts.map(function(p,k){return (k?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'"/>';
+  var be=null; for(i=0;i<pts.length;i++){ if(pts[i][1]<0){be=pts[i][0];break;} }
+  var cur=clamp(st.disc,0,50), labels=[];
+  s+='<line x1="'+X(cur)+'" x2="'+X(cur)+'" y1="'+pt+'" y2="'+(H-pb)+'" stroke="var(--ink)" stroke-width="1.5"/><circle cx="'+X(cur)+'" cy="'+Y(m(cur/100))+'" r="4.5" fill="var(--ink)"/>';
+  labels.push({x:X(cur),t:'Sekarang '+st.disc+'% ('+m(cur/100).toFixed(1).replace('.',',')+'%)',row:0});
+  if(be!==null){ s+='<line x1="'+X(be)+'" x2="'+X(be)+'" y1="'+pt+'" y2="'+(H-pb)+'" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="3 3"/>'; labels.push({x:X(be),t:'Mulai rugi di diskon '+be+'%',row:1}); }
+  labels.forEach(function(l){
+    var anchor=l.x>W*0.6?'end':'start', dx=anchor==='end'?-6:6;
+    s+='<text class="lbl" x="'+(l.x+dx)+'" y="'+(14+l.row*15)+'" text-anchor="'+anchor+'" font-weight="600">'+esc(l.t)+'</text>';
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  box.dataset.be=be===null?'':be;
+}
+function renderCharts(){renderMarginChart();renderDiscountChart();}
+['chCat','chSort','chN'].forEach(function(id){$('#'+id).addEventListener('change',renderMarginChart);});
+var rz; window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){if(curTab==='grafik')renderCharts();},150);});
+
+/* ---------- Clock & calendar (WIB) ---------- */
+var TZ='Asia/Jakarta';
+function jak(ms){
+  var p={}, parts=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(ms==null?Date.now():ms));
+  parts.forEach(function(x){p[x.type]=x.value;});
+  return {y:+p.year,m:+p.month,d:+p.day,h:+p.hour,mi:+p.minute,s:+p.second};
+}
+function tickClock(){
+  var now=new Date();
+  $('#clockTime').textContent=new Intl.DateTimeFormat('id-ID',{timeZone:TZ,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(now).replace(/\./g,':')+' WIB';
+  $('#clockDate').textContent=new Intl.DateTimeFormat('id-ID',{timeZone:TZ,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now);
+}
+var MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var J0=jak(), calY=J0.y, calM=J0.m, selDate='';
+function dim(y,m){return new Date(Date.UTC(y,m,0)).getUTCDate();}
+function ms(y,m,d,time){return Date.parse(y+'-'+pad(m)+'-'+pad(d)+'T'+time+':00+07:00');}
+function occAfter(r,t){
+  var p=r.date.split('-').map(Number);
+  if(r.rep!=='monthly'){var b=ms(p[0],p[1],p[2],r.time); return b>=t?b:null;}
+  var y=p[0],m=p[1];
+  for(var k=0;k<1200;k++){
+    var d=Math.min(p[2],dim(y,m)), c=ms(y,m,d,r.time);
+    if(c>=t) return c;
+    m++; if(m>12){m=1;y++;}
+  }
+  return null;
+}
+function occDaysInMonth(r,y,m){
+  var p=r.date.split('-').map(Number);
+  if(r.rep!=='monthly') return (p[0]===y&&p[1]===m)?[p[2]]:[];
+  if(y<p[0]||(y===p[0]&&m<p[1])) return [];
+  return [Math.min(p[2],dim(y,m))];
+}
+function renderCal(){
+  $('#calTitle').textContent=MONTHS[calM-1]+' '+calY;
+  var first=new Date(Date.UTC(calY,calM-1,1)).getUTCDay(); var off=(first+6)%7; // Senin awal
+  var days=dim(calY,calM), mark={};
+  S.reminders.forEach(function(r){occDaysInMonth(r,calY,calM).forEach(function(d){mark[d]=(mark[d]||0)+1;});});
+  var t=jak(), h=['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(function(x){return '<div class="dow">'+x+'</div>';}).join('');
+  for(var i=0;i<off;i++) h+='<button class="pad" tabindex="-1" aria-hidden="true"></button>';
+  for(var d=1;d<=days;d++){
+    var iso=calY+'-'+pad(calM)+'-'+pad(d), cls=[];
+    if(t.y===calY&&t.m===calM&&t.d===d) cls.push('today');
+    if(mark[d]) cls.push('has'); if(selDate===iso) cls.push('sel');
+    h+='<button type="button" data-date="'+iso+'" class="'+cls.join(' ')+'" aria-label="'+d+' '+MONTHS[calM-1]+(mark[d]?', ada '+mark[d]+' pengingat':'')+'">'+d+'</button>';
+  }
+  $('#cal').innerHTML=h;
+}
+$('#cal').addEventListener('click',function(e){
+  var b=e.target.closest('[data-date]'); if(!b) return;
+  selDate=b.dataset.date; $('#r_date').value=selDate; renderCal();
+});
+$('#calPrev').addEventListener('click',function(){calM--; if(calM<1){calM=12;calY--;} renderCal();});
+$('#calNext').addEventListener('click',function(){calM++; if(calM>12){calM=1;calY++;} renderCal();});
+
+/* ---------- Reminders ---------- */
+var LEAD={0:'tepat waktu',15:'15 menit sebelumnya',60:'1 jam sebelumnya',1440:'1 hari sebelumnya',4320:'3 hari sebelumnya'};
+function countdown(diff){
+  if(diff<=0) return 'sedang berlangsung';
+  var m=Math.floor(diff/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60), mm=m%60;
+  if(d>0) return d+' hari '+h+' jam lagi';
+  if(h>0) return h+' jam '+mm+' menit lagi';
+  return Math.max(1,mm)+' menit lagi';
+}
+function fmtWhen(t){return new Intl.DateTimeFormat('id-ID',{timeZone:TZ,weekday:'short',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(t)).replace(/\./g,':').replace(/(\d{2}):(\d{2})$/,'$1.$2')+' WIB';}
+function renderRemList(){
+  var now=Date.now();
+  var items=S.reminders.map(function(r){return {r:r,o:occAfter(r,now-2*3600000)};});
+  items.sort(function(a,b){return (a.o==null?1e18:a.o)-(b.o==null?1e18:b.o);});
+  if(!items.length){$('#remList').innerHTML='<p class="muted" style="margin:0">Belum ada pengingat. Pilih 11.11, 12.12, atau gajian di formulir, atau isi sendiri.</p>';return;}
+  $('#remList').innerHTML=items.map(function(x){
+    var r=x.r, o=x.o;
+    var when=o==null?'<span class="muted">Sudah lewat</span>':'<span class="cd">'+countdown(o-now)+'</span> &middot; '+esc(fmtWhen(o));
+    return '<div class="rem"><div><b>'+esc(r.title)+'</b><small>'+when+'</small><small>Diingatkan '+LEAD[r.lead]+(r.rep==='monthly'?' &middot; tiap bulan':'')+'</small>'+(r.note?'<small>'+esc(r.note)+'</small>':'')+'</div><button class="btn small danger" type="button" data-rdel="'+r.id+'">Hapus</button></div>';
+  }).join('');
+}
+$('#remList').addEventListener('click',function(e){
+  var b=e.target.closest('[data-rdel]'); if(!b) return; var id=b.dataset.rdel;
+  twoStep(b,'r'+id,'Yakin?',function(){S.reminders=S.reminders.filter(function(r){return r.id!==id;}); save(); renderRemList(); renderCal();});
+});
+$('#remForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  var title=$('#r_title').value.trim(), date=$('#r_date').value, time=$('#r_time').value, m=$('#remMsg'); m.className='msg err';
+  if(!title){m.textContent='Isi judul pengingat.';$('#r_title').focus();return;}
+  if(!date){m.textContent='Pilih tanggal.';$('#r_date').focus();return;}
+  if(!time){m.textContent='Isi jam.';$('#r_time').focus();return;}
+  S.reminders.push({id:'r'+Date.now().toString(36),title:title,date:date,time:time,lead:+$('#r_lead').value,rep:$('#r_rep').value,note:$('#r_note').value.trim()});
+  save(); var p=date.split('-').map(Number); calY=p[0]; calM=p[1]; selDate=date;
+  renderCal(); renderRemList(); checkReminders();
+  $('#r_title').value=''; $('#r_note').value='';
+  m.className='msg ok'; m.textContent='Pengingat disimpan.';
+});
+$('#remForm').addEventListener('input',function(){$('#remMsg').textContent='';});
+var PRESETS={
+  '1111':{title:'Siapkan promo 11.11',date:'2026-11-11',time:'00:00',lead:4320,rep:'none',note:'Cek stok, voucher, dan budget iklan. Cek jadwal resmi di Seller Center.'},
+  '1212':{title:'Siapkan promo 12.12',date:'2026-12-12',time:'00:00',lead:4320,rep:'none',note:'Cek stok, voucher, dan budget iklan. Cek jadwal resmi di Seller Center.'},
+  'gajian':{title:'Promo gajian',date:'2026-11-25',time:'08:00',lead:1440,rep:'monthly',note:'Tanggal 25 sampai awal bulan biasanya ramai. Siapkan voucher dan stok.'}
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-preset]'); if(!b) return; var p=PRESETS[b.dataset.preset];
+  $('#r_title').value=p.title; $('#r_date').value=p.date; $('#r_time').value=p.time; $('#r_lead').value=p.lead; $('#r_rep').value=p.rep; $('#r_note').value=p.note;
+  var d=p.date.split('-').map(Number); calY=d[0]; calM=d[1]; selDate=p.date; renderCal();
+  $('#remMsg').className='msg'; $('#remMsg').textContent='Formulir terisi. Cek jam, lalu klik Simpan pengingat.';
+});
+/* alarm */
+var actx=null;
+document.addEventListener('pointerdown',function(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.resume)actx.resume();}catch(e){}},{once:true});
+function beep(){try{ if(!actx)return; var o=actx.createOscillator(),g=actx.createGain(); o.connect(g); g.connect(actx.destination); o.frequency.value=880; g.gain.value=0.08; o.start(); o.stop(actx.currentTime+0.3);}catch(e){}}
+function renderBanner(){
+  $('#banner').innerHTML=S.alerts.map(function(a,i){
+    return '<div class="alert"><strong>Pengingat promo.</strong><div><b>'+esc(a.title)+'</b> &middot; '+esc(a.when)+(a.note?'<br>'+esc(a.note):'')+'</div><button class="btn small" type="button" data-adel="'+i+'" style="margin-left:auto">Tutup</button></div>';
+  }).join('');
+  document.title=(S.alerts.length?'('+S.alerts.length+') ':'')+'Kalkulator GMV Dien';
+}
+$('#banner').addEventListener('click',function(e){var b=e.target.closest('[data-adel]'); if(!b) return; S.alerts.splice(+b.dataset.adel,1); save(); renderBanner();});
+function checkReminders(){
+  var now=Date.now(), fired=false;
+  S.reminders.forEach(function(r){
+    var o=occAfter(r,now-2*3600000); if(o==null) return;
+    var key=r.id+'|'+o;
+    if(now>=o-r.lead*60000 && now<=o+2*3600000 && !S.fired[key]){
+      S.fired[key]=1; fired=true;
+      S.alerts.push({title:r.title,when:(o>now?countdown(o-now):'sudah dimulai')+' ('+fmtWhen(o)+')',note:r.note});
+    }
+  });
+  if(fired){save(); renderBanner(); beep(); if(curTab==='pengingat') renderRemList();}
+}
+
+/* ---------- Init ---------- */
+(function init(){
+  var t=jak(), tm=new Date(Date.now()+86400000), j=jak(tm.getTime());
+  $('#r_date').value=j.y+'-'+pad(j.m)+'-'+pad(j.d);
+  ensureState(); fillCatControls(); renderSettings(); renderTable(); renderSummary(); renderBanner(); tickClock(); setDashForms(); syncCalcStatic(); renderDash(); renderCalc();
+  var h=(location.hash||'').slice(1); setTab(TABS.indexOf(h)>=0?h:'dasbor',true);
+  checkReminders();
+  setInterval(tickClock,1000);
+  setInterval(function(){checkReminders(); if(curTab==='pengingat') renderRemList();},15000);
+})();
+})();
+</script>
+</body></html>
